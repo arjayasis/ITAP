@@ -1,0 +1,41 @@
+export const memberCompanies = [
+  { name: "Accent Micro Technologies Inc. (AMTI)", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Accent%20Micro%20Technologies%20Inc.%20(AMTI).png", website: "https://www.amti.com.ph/" },
+  { name: "ACER Philippines Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/ACER%20Philippines%20Inc.png", website: "https://www.acer.com/ph-en/" },
+  { name: "Advance Microsystems", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Advance%20Microsystems.png", website: "https://www.advance-microsystems.com/" },
+  { name: "Advance Solutions, Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Advance%20Solutions%2c%20Inc..png", website: "https://myasiph.com/" },
+  { name: "Advanced Micro Devices (AMD)", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Advanced%20Micro%20Devices%20(AMD).png", website: "https://www.amd.com/" },
+  { name: "ARDENT Networks PH", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/ARDENT%20Networks%20PH.png", website: "https://ardentnetworks.com.ph/" },
+  { name: "Beacon Solutions Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Beacon%20Solutions%20Inc..png", website: "https://beacon-solutions.com/" },
+  { name: "Cerebrotech Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Cerebrotech%20Inc..png", website: "https://cerebrotech.ph/" },
+  { name: "Converge ICT", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Converge%20ICT.png", website: "https://www.convergeict.com/" },
+  { name: "Dell Technologies", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Dell%20Technologies.png", website: "https://www.dell.com/en-ph" },
+  { name: "DFNN Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/DFNN%20Inc..png", website: "https://www.dfnn.com/" },
+  { name: "EXAKT Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/EXAKT%20Inc.png", website: "https://exakt.com.ph/" },
+  { name: "F5 Networks Philippines", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/F5%20Networks%20Philippines.png", website: "https://www.f5.com/" },
+  { name: "FELTA Multi-Media Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/FELTA%20Multi-Media%20Inc.png", website: "https://felta.ph/" },
+  { name: "Fujitsu Philippines, Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Fujitsu%20Philippines%2c%20Inc.png", website: "https://www.fujitsu.com/ph/" },
+  { name: "Gr8 Tech Enterprise Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Gr8%20Tech%20Enterprise%20Inc..png", website: "https://www.facebook.com/GR8TechEnterpriseInc/" },
+  { name: "iOne Resources, Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/iOne%20Resources%2c%20Inc..png", website: "https://www.ioneresources.net/" },
+  { name: "Joneco Tech Marketing Corp.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Joneco%20Tech%20Marketing%20Corp..png", website: "https://www.jonecotech.com.ph/" },
+  { name: "Kinjo Pte. Ltd", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Kinjo%20Pte.%20Ltd.png", website: "https://www.kinjotech.com/" },
+  { name: "Land Registration Systems Inc", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Land%20Registration%20Systems%20Inc.png", website: "https://www.lares.com.ph/" },
+  { name: "Lenovo Philippines Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Lenovo%20Philippines%20Inc..png", website: "https://www.lenovo.com/ph/en/" },
+  { name: "Macrologic", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Macrologic.png", website: "https://macrologic.com.ph/" },
+  { name: "MEC Networks Corporation", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/MEC%20Networks%20Corporation.png", website: "https://mec.ph/" },
+  { name: "Metasystems Development Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Metasystems%20Development%20Inc.png", website: "https://www.metadev.com/" },
+  { name: "NEC Philippines Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/NEC%20Philippines%20Inc.png", website: "https://ph.nec.com/" },
+  { name: "Neo-Tech Asia Distribution Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Neo-Tech%20Asia%20Distribution%20Inc..png", website: "https://www.neotechasia.com/" },
+  { name: "New York Global Consultants Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/nygci_logo.png", website: "https://www.nygci.com/" },
+  { name: "Phil-Data Business Systems Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Phil-Data%20Business%20Systems%20Inc..png", website: "https://www.phildata.com/" },
+  { name: "Shield Core Technologies", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/shieldcore_logo.png", website: "https://www.shieldcoretech.com/" },
+  { name: "Silicon Valley Computer Group Phils. Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/Silicon Valley Computer Group Phils. Inc..png", website: "https://www.siliconvalley.com.ph/" },
+  { name: "Sognare Systems and Solutions Corp.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Sognare%20Systems%20and%20Solutions%20Corp.png", website: "https://sognare.com.ph/" },
+  { name: "STI Education Services Group Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/STI%20Education%20Services%20Group%20Inc..png", website: "https://www.sti.edu/" },
+  { name: "Total Information Management Corporation (TIM)", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/TIM.png", website: "https://timcorp.net.ph/" },
+  { name: "VSTECS PHILS INC.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/VST-ECS-logo-01-1.png", website: "https://www.vstecs.com.ph/" }
+];
+
+export const newMembers = [
+  { name: "Shield Core Technologies", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/shieldcore_logo.png", website: "https://www.shieldcoretech.com/" },
+  { name: "New York Global Consultants Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/nygci_logo.png", website: "https://www.nygci.com/" }
+];
