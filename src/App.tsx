@@ -237,7 +237,6 @@ const Navbar = () => {
     { name: 'About', href: '/#about' },
     { name: 'Membership', href: '/membership' },
     { name: 'Events', href: '/events' },
-    { name: 'V-Deck', href: '/v-deck' },
     { name: 'Contact', href: '/#contact' },
   ];
 
