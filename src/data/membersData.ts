@@ -36,6 +36,16 @@ export const memberCompanies = [
 ];
 
 export const newMembers = [
-  { name: "Shield Core Technologies", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/shieldcore_logo.png", website: "https://www.shieldcoretech.com/" },
-  { name: "New York Global Consultants Inc.", logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/nygci_logo.png", website: "https://www.nygci.com/" }
+  { 
+    name: "Shield Core Technologies", 
+    logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/shieldcore_logo.png", 
+    website: "https://www.shieldcoretech.com/",
+    representedBy: "Jasper Franco | Founder and CEO"
+  },
+  { 
+    name: "New York Global Consultants Inc.", 
+    logo: "https://marketing.timcorp.net.ph/hubfs/ITAP/nygci_logo.png", 
+    website: "https://www.nygci.com/",
+    representedBy: "Raymond Padua | Sr. HR Manager"
+  }
 ];

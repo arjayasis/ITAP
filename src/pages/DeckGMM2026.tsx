@@ -721,10 +721,22 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
             align: "center", fontSize: 44, bold: true, color: textColor 
           });
           newMembers.forEach((member, idx) => {
-            s.addText(`• ${member.name}`, { 
-              x: 1, y: 2.2 + (idx * 0.6), w: 4.67, h: 0.5, 
-              fontSize: 18, color: textColor 
+            const yPos = 2.5 + (idx * 3.3);
+            s.addImage({ 
+              path: member.logo, 
+              x: 1.335, y: yPos, w: 3, h: 1.5, 
+              sizing: { type: 'contain', w: 3, h: 1.5 } 
             });
+            s.addText(member.name, { 
+              x: 0.5, y: yPos + 1.8, w: 5.67, h: 0.5, 
+              align: "center", fontSize: 24, bold: true, color: textColor 
+            });
+            if (member.representedBy) {
+              s.addText(`Represented by: ${member.representedBy}`, { 
+                x: 0.5, y: yPos + 2.4, w: 5.67, h: 0.4, 
+                align: "center", fontSize: 16, color: BRAND_CYAN, bold: true 
+              });
+            }
           });
           break;
 
@@ -1757,9 +1769,22 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
                   
                   {/* Identity */}
                   <div className={`mt-6 text-center w-full`}>
-                    <h3 className={`${isPortrait ? 'text-xl opacity-70' : 'text-2xl opacity-80'} font-display font-bold text-brand-ink tracking-tight mb-2 uppercase`}>
+                    <h3 className={`${isPortrait ? 'text-2xl' : 'text-3xl'} font-display font-bold text-brand-ink tracking-tight mb-3 uppercase`}>
                       {company.name}
                     </h3>
+                    {company.representedBy && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.2 + 0.5 }}
+                        className="inline-block px-6 py-2 rounded-xl bg-slate-50 border border-slate-100 shadow-sm"
+                      >
+                        <p className={`${isPortrait ? 'text-lg' : 'text-xl'} text-brand-cyan font-bold font-mono tracking-tight`}>
+                          <span className="text-slate-400 font-medium text-sm mr-2 opacity-60">Represented by:</span>
+                          {company.representedBy}
+                        </p>
+                      </motion.div>
+                    )}
                   </div>
                 </div>
               </motion.div>
