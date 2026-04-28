@@ -366,7 +366,7 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
     { id: 'opening-dark', label: 'Opening (Dark)', type: 'content' },
     { id: 'remarks', label: 'Opening Remarks', type: 'content' },
     { id: 'agenda', label: 'The Agenda', type: 'content' },
-    { id: 'leadership-divider', label: 'Leadership Divider', type: 'divider', title: 'Leadership', tagline: 'Guiding ITAP forward in 2026' },
+    { id: 'leadership-divider', label: 'Officers Divider', type: 'divider', title: 'Officers', tagline: 'Guiding ITAP forward in 2026' },
     { id: 'directors', label: 'Board of Directors', type: 'content' },
     { id: 'ecosystem', label: 'Member Logos', type: 'content' },
     { id: 'innovation-divider', label: 'Innovation Divider', type: 'divider', title: 'Innovation', tagline: 'Connecting members through better platforms' },
@@ -531,7 +531,7 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
             x: 0.5, y: 1.5, w: 5.67, h: 1, 
             align: "center", fontSize: 48, bold: true, color: textColor 
           });
-          const items = ["Leadership", "ITAP Live", "EDGE Program", "New Members"];
+          const items = ["Officers", "ITAP Live", "EDGE Program", "New Members"];
           items.forEach((item, idx) => {
             s.addText(`${idx + 1}. ${item}`, { 
               x: 1, y: 3.5 + (idx * 0.8), w: 4.67, h: 0.6, 
@@ -1039,7 +1039,7 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
             
             <div className={`grid ${isPortrait ? 'grid-cols-1 gap-12' : 'grid-cols-2 gap-12 md:gap-20'} px-8 md:px-20`}>
               {[
-                { id: '01', title: 'Leadership', icon: <Users className="w-12 h-12" />, desc: 'Meet the visionaries behind the 2026 Board of Directors' },
+                { id: '01', title: 'Officers', icon: <Users className="w-12 h-12" />, desc: 'Meet the visionaries behind the 2026 Board of Directors' },
                 { id: '02', title: 'ITAP Live', icon: <Activity className="w-12 h-12" />, desc: 'Real-time showcase of our newly launched digital infrastructure' },
                 { id: '03', title: 'EDGE Program', icon: <Layers className="w-12 h-12" />, desc: 'Bridging academia & industry through strategic partnerships' },
                 { id: '04', title: 'New Members', icon: <Sparkles className="w-12 h-12" />, desc: 'Welcoming the newest organizations to the ITAP family' },
@@ -1071,7 +1071,7 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
       );
       case 'leadership-divider': return (
         <SectionDivider 
-          title="Leadership" 
+          title="Officers" 
           tagline="Guiding ITAP forward in 2026" 
           isPortrait={isPortrait}
         />
@@ -1084,7 +1084,7 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
               animate={{ opacity: 1 }}
               className={`text-brand-cyan font-mono ${isPortrait ? 'text-lg' : 'text-xs md:text-sm'} font-bold tracking-[0.4em] uppercase mb-4 block`}
             >
-              Leadership
+              Officers
             </motion.span>
             <motion.h2 
               initial={{ opacity: 0, y: -20 }}
