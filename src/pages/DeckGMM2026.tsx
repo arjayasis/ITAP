@@ -609,6 +609,24 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
           });
           break;
 
+        case 'events-overview':
+          s.addText("ITAP Key Events 2026", { 
+            x: 0.5, y: 0.8, w: 5.67, h: 1, 
+            align: "center", fontSize: 44, bold: true, color: textColor 
+          });
+          const events = [
+            "ITAP EDGE Program Launch", 
+            "Tree Planting Initiative", 
+            "12th ITAP & Friends Golf"
+          ];
+          events.forEach((event, idx) => {
+            s.addText(`• ${event}`, { 
+              x: 1, y: 3 + (idx * 0.8), w: 4.67, h: 0.6, 
+              fontSize: 24, color: textColor, bold: true 
+            });
+          });
+          break;
+
         case 'tree-planting':
           s.addText("Tree Planting", { 
             x: 0.5, y: 0.8, w: 5.67, h: 1, 
@@ -643,16 +661,16 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
 
         case 'edge-bridge':
           s.addText("ITAP EDGE", { 
-            x: 0.5, y: 1.5, w: 5.67, h: 1, 
+            x: 0.5, y: 1.2, w: 5.67, h: 1, 
             align: "center", fontSize: 54, bold: true, color: "0F172A" 
           });
           s.addImage({ 
             path: "https://marketing.timcorp.net.ph/hubfs/ITAP/deck/TIP_logo.png", 
-            x: 1.335, y: 3, w: 4, h: 4, 
-            sizing: { type: 'contain', w: 4, h: 4 } 
+            x: 0.835, y: 2.5, w: 5, h: 5, 
+            sizing: { type: 'contain', w: 5, h: 5 } 
           });
           s.addText("Industry-Academe Bridge", { 
-            x: 0.5, y: 7.5, w: 5.67, h: 0.5, 
+            x: 0.5, y: 7.8, w: 5.67, h: 0.5, 
             align: "center", fontSize: 24, color: BRAND_CYAN, bold: true 
           });
           break;
@@ -1345,9 +1363,9 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
             
             <div className={`grid ${isPortrait ? 'grid-cols-1 gap-10' : 'md:grid-cols-3 gap-10 md:gap-14'} w-full max-w-[1600px]`}>
               {[
+                { title: 'EDGE Program', icon: <Cpu />, color: 'bg-brand-cyan', desc: 'Academe & Industry', accent: 'cyan' },
                 { title: 'Tree Planting', icon: <Globe />, color: 'bg-emerald-500', desc: 'Sustainability & Community', accent: 'emerald' },
                 { title: 'Golf Tournament', icon: <Zap />, color: 'bg-brand-blue', desc: 'Networking & Camaraderie', accent: 'blue' },
-                { title: 'EDGE Program', icon: <Cpu />, color: 'bg-brand-cyan', desc: 'Academe & Industry', accent: 'cyan' },
               ].map((event, idx) => (
                 <motion.div
                   key={event.title}
@@ -1539,10 +1557,10 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
                 transition={{ type: "spring", damping: 15 }}
                 className="text-center group"
               >
-                <div className={`${isPortrait ? 'w-80 h-80' : 'w-64 h-64 md:w-80 md:h-80'} flex items-center justify-center`}>
-                  <img src="https://marketing.timcorp.net.ph/hubfs/ITAP/deck/TIP_logo.png" alt="TIP Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                <div className={`${isPortrait ? 'w-[400px] h-[400px]' : 'w-80 h-80 md:w-[480px] md:h-[480px]'} flex items-center justify-center transition-transform group-hover:scale-105 duration-500`}>
+                  <img src="https://marketing.timcorp.net.ph/hubfs/ITAP/deck/TIP_logo.png" alt="TIP Logo" className="w-full h-full object-contain drop-shadow-2xl" referrerPolicy="no-referrer" />
                 </div>
-                <p className={`mt-6 font-mono ${isPortrait ? 'text-xl' : 'text-sm'} tracking-[0.4em] text-brand-cyan uppercase font-bold`}>Academe</p>
+                <p className={`mt-10 font-mono ${isPortrait ? 'text-2xl' : 'text-sm'} tracking-[0.4em] text-brand-cyan uppercase font-bold`}>Academe</p>
               </motion.div>
 
               <div className={`${isPortrait ? 'relative h-20 flex flex-col items-center justify-center' : ''}`}>
@@ -1564,10 +1582,10 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
                 transition={{ type: "spring", damping: 15 }}
                 className="text-center group"
               >
-                <div className={`${isPortrait ? 'w-80 h-80' : 'w-64 h-64 md:w-80 md:h-80'} flex items-center justify-center`}>
-                  <img src="https://marketing.timcorp.net.ph/hubfs/ITAP/ITAPAsset 6@4x.png" alt="ITAP Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                <div className={`${isPortrait ? 'w-[400px] h-[400px]' : 'w-80 h-80 md:w-[480px] md:h-[480px]'} flex items-center justify-center transition-transform group-hover:scale-105 duration-500`}>
+                  <img src="https://marketing.timcorp.net.ph/hubfs/ITAP/ITAPAsset 6@4x.png" alt="ITAP Logo" className="w-full h-full object-contain drop-shadow-2xl" referrerPolicy="no-referrer" />
                 </div>
-                <p className={`mt-6 font-mono ${isPortrait ? 'text-xl' : 'text-sm'} tracking-[0.3em] text-brand-cyan uppercase font-bold`}>Industry</p>
+                <p className={`mt-10 font-mono ${isPortrait ? 'text-2xl' : 'text-sm'} tracking-[0.3em] text-brand-cyan uppercase font-bold`}>Industry</p>
               </motion.div>
             </div>
           </div>
