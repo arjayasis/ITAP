@@ -11,7 +11,7 @@ const eventsData: Event[] = [
     date: "2026-04-28",
     image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/1st-GMM2026.jpg",
     venue: "Manila Golf and Country Club | 2:00 PM – 5:00 PM",
-    overview: `The INFOCOMM Technology Association of the Philippines successfully held its 1st General Membership Meeting for 2026, bringing together industry leaders, members, and partners to introduce its “Framework for 2026” focused on innovation, collaboration, and digital excellence.
+    overview: `The Infocomm Technology Association of the Philippines (ITAP) successfully held its 1st General Membership Meeting for 2026, bringing together industry leaders, members, and partners to introduce its “Framework for 2026” focused on innovation, collaboration, and digital excellence.
 
 One of the major highlights of the event was the introduction of the 2026 Board of Directors, reinforcing ITAP’s commitment to advancing the Philippine ICT industry through stronger leadership and industry collaboration.
 
