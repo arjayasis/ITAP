@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
-import { Calendar, MapPin, Image as ImageIcon, Clock, X, ExternalLink } from 'lucide-react';
+import { Calendar, MapPin, Image as ImageIcon, Clock, X, ExternalLink, Share2 } from 'lucide-react';
 import { Event, EventModal } from '../components/EventModal';
 
 const eventsData: Event[] = [
@@ -140,11 +140,32 @@ const EventCard: React.FC<{ event: Event, index: number, onOpen: () => void }> =
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
-        <div className="absolute top-4 left-4">
+        <div className="absolute top-4 left-4 flex gap-2">
           <div className="bg-slate-950/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-mono font-bold flex items-center gap-2 border border-white/10">
             <Calendar className="w-3 h-3 text-brand-cyan" />
             {new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
           </div>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              const shareUrl = window.location.href;
+              const shareText = `Check out this ITAP event: ${event.title}`;
+              if (navigator.share) {
+                navigator.share({
+                  title: event.title,
+                  text: shareText,
+                  url: shareUrl,
+                }).catch(() => {});
+              } else {
+                navigator.clipboard.writeText(shareUrl);
+                alert('Event link copied to clipboard!');
+              }
+            }}
+            className="p-1.5 rounded-full bg-slate-950/60 backdrop-blur-md text-white border border-white/10 hover:bg-brand-cyan hover:text-brand-ink transition-colors"
+            title="Share Event"
+          >
+            <Share2 className="w-3 h-3" />
+          </button>
         </div>
       </div>
 

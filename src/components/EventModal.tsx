@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Calendar, MapPin, Clock, X, ExternalLink } from 'lucide-react';
+import { Calendar, MapPin, Clock, X, ExternalLink, Share2, Twitter, Linkedin, Facebook, Link as LinkIcon } from 'lucide-react';
 
 export interface Event {
   title: string;
@@ -16,6 +16,28 @@ interface EventModalProps {
 }
 
 export const EventModal = ({ event, onClose }: EventModalProps) => {
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const shareText = `Check out this ITAP event: ${event.title}`;
+
+  const handleShare = (platform: string) => {
+    let url = '';
+    switch (platform) {
+      case 'twitter':
+        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+        break;
+      case 'facebook':
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+        break;
+      case 'linkedin':
+        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(shareUrl);
+        alert('Link copied to clipboard!');
+        return;
+    }
+    if (url) window.open(url, '_blank');
+  };
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -93,6 +115,40 @@ export const EventModal = ({ event, onClose }: EventModalProps) => {
             </div>
 
             <div className="md:w-64 shrink-0 space-y-6">
+              <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
+                <h4 className="text-xs font-mono uppercase tracking-widest text-slate-500 mb-4">Share Event</h4>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => handleShare('facebook')}
+                    className="p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-brand-blue transition-all"
+                    title="Share on Facebook"
+                  >
+                    <Facebook className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleShare('twitter')}
+                    className="p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+                    title="Share on Twitter"
+                  >
+                    <Twitter className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleShare('linkedin')}
+                    className="p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-[#0077b5] transition-all"
+                    title="Share on LinkedIn"
+                  >
+                    <Linkedin className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleShare('copy')}
+                    className="p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-brand-cyan transition-all"
+                    title="Copy Link"
+                  >
+                    <LinkIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
               <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
                 <h4 className="text-xs font-mono uppercase tracking-widest text-slate-500 mb-4">Event Status</h4>
                 <div className="flex items-center gap-2 text-emerald-400">
