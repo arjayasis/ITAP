@@ -5,6 +5,23 @@ import { Event, EventModal } from '../components/EventModal';
 
 const eventsData: Event[] = [
   {
+    title: "ITAP Sets the Pace for 2026 at Its 1st General Membership Meeting",
+    date: "2026-04-28",
+    image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/1st-GMM2026.jpg",
+    venue: "Manila Golf and Country Club | 2:00 PM – 5:00 PM",
+    overview: `The INFOCOMM Technology Association of the Philippines successfully held its 1st General Membership Meeting for 2026, bringing together industry leaders, members, and partners to introduce its “Framework for 2026” focused on innovation, collaboration, and digital excellence.
+
+One of the major highlights of the event was the introduction of the 2026 Board of Directors, reinforcing ITAP’s commitment to advancing the Philippine ICT industry through stronger leadership and industry collaboration.
+
+ITAP also officially launched its newly redesigned website, providing members and partners with a more modern and integrated digital platform for updates, programs, and engagement opportunities.
+
+Another key milestone was the presentation of the EDGE Program in partnership with Technological Institute of the Philippines. T.I.P. President Angelo Quirino Lahoz joined the ITAP Board in commemorating the initiative, which aims to strengthen collaboration between academia and the technology industry.
+
+The event also welcomed new members into the ITAP community, including Shield Core and New York Global Consultants Inc., further expanding the organization’s growing network of technology partners.
+
+The successful gathering highlighted ITAP’s vision of building a stronger, more connected, and future-ready Philippine tech industry.`
+  },
+  {
     title: "General Membership Meeting (GMM) and Christmas Party",
     date: "2025-11-19",
     image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/itap 2025 gmm.jpg",
@@ -12,7 +29,7 @@ const eventsData: Event[] = [
     overview: `Time: 10:00 AM – 3:00 PM
 Theme: "Explore Forward-Looking Strategies for Digital Advancement"
 
-The ITAP Convergence Alliance Inc. successfully concluded its General Membership Meeting (GMM) and Christmas Party on November 19, 2025, at the Manila Golf and Country Club.
+The Infocomm Technology Association of the Philippines successfully concluded its General Membership Meeting (GMM) and Christmas Party on November 19, 2025, at the Manila Golf and Country Club.
 
 Event Highlights:
 

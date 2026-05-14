@@ -565,7 +565,7 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
             { name: 'Kathleen Kho', pos: 'Treasurer', img: 'https://marketing.timcorp.net.ph/hubfs/ITAP/deck/k.kho.png' },
             { name: 'Rodrigo Mendoza', pos: 'Director', img: 'https://marketing.timcorp.net.ph/hubfs/ITAP/deck/r.mendoza.png' },
             { name: 'Dennis John Lumbao', pos: 'Director', img: 'https://marketing.timcorp.net.ph/hubfs/ITAP/deck/d.lumbao.png?v=2' },
-            { name: 'Michael Raymond Remoquillo', pos: 'Director', img: 'https://marketing.timcorp.net.ph/hubfs/ITAP/deck/m.remoquillo.png' },
+            { name: 'Mok Remoquillo', pos: 'Director', img: 'https://marketing.timcorp.net.ph/hubfs/ITAP/deck/m.remoquillo.png' },
           ];
           directors.forEach((dir, idx) => {
             const yPos = 1.8 + (idx * 1.1);
@@ -1103,7 +1103,7 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
               { name: 'Kathleen Kho', itapPos: 'Treasurer', company: 'Metasystems', companyPos: 'CEO', img: 'https://marketing.timcorp.net.ph/hubfs/ITAP/deck/k.kho.png', companyLogo: 'https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Metasystems%20Development%20Inc.png' },
               { name: 'Rodrigo Mendoza', itapPos: 'Director', company: 'AMTI', companyPos: 'AVP Leader', img: 'https://marketing.timcorp.net.ph/hubfs/ITAP/deck/r.mendoza.png', companyLogo: 'https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Accent%20Micro%20Technologies%20Inc.%20(AMTI).png' },
               { name: 'Dennis Lumbao', itapPos: 'Director', company: 'Dell', companyPos: 'Sales Leader', img: 'https://marketing.timcorp.net.ph/hubfs/ITAP/deck/d.lumbao.png?v=2', companyLogo: 'https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Dell%20Technologies.png' },
-              { name: 'Michael Raymond Remoquillo', itapPos: 'Director', company: 'Lenovo', companyPos: 'Country Lead', img: 'https://marketing.timcorp.net.ph/hubfs/ITAP/deck/m.remoquillo.png', companyLogo: 'https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Lenovo%20Philippines%20Inc..png' },
+              { name: 'Mok Remoquillo', itapPos: 'Director', company: 'Lenovo', companyPos: 'Country Lead', img: 'https://marketing.timcorp.net.ph/hubfs/ITAP/deck/m.remoquillo.png', companyLogo: 'https://marketing.timcorp.net.ph/hubfs/ITAP/member%20logos/Lenovo%20Philippines%20Inc..png' },
             ].map((member, idx) => (
               <motion.div
                 key={member.name}

@@ -468,7 +468,7 @@ const Home = () => {
             <SectionHeading 
               badge="About ITAP"
               title="Our Vision & Mission"
-              subtitle="Since 1984, ITAP has been at the forefront of the Philippine ICT landscape, bridging the gap between technology and economic prosperity."
+              subtitle="Infocomm Technology Association of the Philippines (ITAP). Since 1984, we have been at the forefront of the Philippine ICT landscape, bridging the gap between technology and economic prosperity."
             />
           </ParallaxSection>
         </div>
@@ -511,7 +511,7 @@ const Home = () => {
                   className="flex items-end justify-between"
                 >
                   <p className="text-slate-300 text-lg leading-relaxed font-light max-w-2xl">
-                    ITAP is more than an association; it's a movement of dedicated professionals working tirelessly to elevate the Philippine ICT industry to global standards.
+                    The Infocomm Technology Association of the Philippines (ITAP) is more than an association; it's a movement of dedicated professionals working tirelessly to elevate the Philippine ICT industry to global standards.
                   </p>
                   <Link to="/membership#members" className="flex -space-x-4 hover:scale-105 transition-transform cursor-pointer">
                     {memberCompanies.slice(0, 7).map((company, i) => (
@@ -570,7 +570,7 @@ const Home = () => {
             {/* Bottom Text */}
             <div className="px-6 pt-6 pb-10">
               <p className="text-slate-300 text-base leading-relaxed font-light mb-6">
-                ITAP is more than an association; it's a movement of dedicated professionals working tirelessly to elevate the Philippine ICT industry to global standards.
+                The Infocomm Technology Association of the Philippines (ITAP) is more than an association; it's a movement of dedicated professionals working tirelessly to elevate the Philippine ICT industry to global standards.
               </p>
               <Link to="/membership#members" className="flex -space-x-3">
                 {memberCompanies.slice(0, 7).map((company, i) => (
@@ -749,6 +749,23 @@ const LatestEvents = () => {
 
   const latestEvents: Event[] = [
     {
+      title: "ITAP Sets the Pace for 2026 at Its 1st General Membership Meeting",
+      date: "2026-04-28",
+      image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/1st-GMM2026.jpg",
+      venue: "Manila Golf and Country Club",
+      overview: `The INFOCOMM Technology Association of the Philippines successfully held its 1st General Membership Meeting for 2026, bringing together industry leaders, members, and partners to introduce its “Framework for 2026” focused on innovation, collaboration, and digital excellence.
+
+One of the major highlights of the event was the introduction of the 2026 Board of Directors, reinforcing ITAP’s commitment to advancing the Philippine ICT industry through stronger leadership and industry collaboration.
+
+ITAP also officially launched its newly redesigned website, providing members and partners with a more modern and integrated digital platform for updates, programs, and engagement opportunities.
+
+Another key milestone was the presentation of the EDGE Program in partnership with Technological Institute of the Philippines. T.I.P. President Angelo Quirino Lahoz joined the ITAP Board in commemorating the initiative, which aims to strengthen collaboration between academia and the technology industry.
+
+The event also welcomed new members into the ITAP community, including Shield Core and New York Global Consultants Inc., further expanding the organization’s growing network of technology partners.
+
+The successful gathering highlighted ITAP’s vision of building a stronger, more connected, and future-ready Philippine tech industry.`
+    },
+    {
       title: "General Membership Meeting (GMM) and Christmas Party",
       date: "2025-11-19",
       image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/itap 2025 gmm.jpg",
@@ -756,11 +773,11 @@ const LatestEvents = () => {
       overview: `Time: 10:00 AM – 3:00 PM
 Theme: "Explore Forward-Looking Strategies for Digital Advancement"
 
-The ITAP Convergence Alliance Inc. successfully concluded its General Membership Meeting (GMM) and Christmas Party on November 19, 2025, at the Manila Golf and Country Club.
+The Infocomm Technology Association of the Philippines successfully concluded its General Membership Meeting (GMM) and Christmas Party on November 19, 2025, at the Manila Golf and Country Club.
 
 Event Highlights:
 
-Strategic Insights: Keynote speaker DICT Secretary Henry Aguda discussed national digital advancement, while Michelle Alarcon (President, AAP) presented on building a robust AI ecosystem for the future.
+Development Insight: Keynote speaker DICT Secretary Henry Aguda discussed national digital advancement, while Michelle Alarcon (President, AAP) presented on building a robust AI ecosystem for the future.
 
 Governance & Growth: The event marked a pivotal moment for the organization with the election of new officers and the induction of new members, strengthening ITAP’s role as the sole Philippine partner of WITSA.
 
@@ -784,13 +801,6 @@ Networking on the Green: The lush backdrop of Sta. Elena provided the perfect se
 Awards & Recognition: The day concluded with a heartfelt awards ceremony, celebrating the standout performances of our spirited players and acknowledging the teamwork that made the day possible.
 
 Recap Video: https://youtu.be/EFsuvbBv8AM`
-    },
-    {
-      title: "The ITAP GMM and Christmas Party",
-      date: "2024-11-21",
-      image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/The ITAP GMM and Christmas Party.jpg",
-      venue: "Manila Golf and Country Club",
-      overview: "The ITAP GMM and Christmas Party on November 21 at the Manila Golf Country Club was a resounding success. We were honored to induct new members and are deeply grateful to our esteemed speakers, Paul Skaria from AMD and Ms. Abba Valbuena from Microsoft, who spoke on the future of responsible AI: Emerging Trends and Technology. A sincere thank you to all attendees and sponsors for their contributions to the success of the event."
     },
   ];
 
@@ -1123,7 +1133,7 @@ export const Footer = () => {
   return (
     <footer className="py-12 border-t border-slate-100 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid md:grid-cols-4 gap-12 mb-12">
+        <div className="grid md:grid-cols-3 gap-12 mb-12">
           <div className="flex flex-col">
             <div className="mb-6">
               <a href="#">
@@ -1136,7 +1146,7 @@ export const Footer = () => {
               </a>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed mb-6">
-              Information Technology Association of the Philippines. 
+              Infocomm Technology Association of the Philippines. 
               The prime mover in ICT since 1984.
             </p>
             <a href="https://witsa.org/" target="_blank" rel="noopener noreferrer" className="flex flex-col">
@@ -1148,15 +1158,6 @@ export const Footer = () => {
                 referrerPolicy="no-referrer"
               />
             </a>
-          </div>
-          <div>
-            <h4 className="font-display font-bold mb-6 uppercase text-xs tracking-widest text-slate-300">Quick Links</h4>
-            <ul className="space-y-4 text-sm text-slate-500">
-              <li><Link to="/" className="hover:text-brand-cyan transition-colors" onClick={() => window.scrollTo(0,0)}>Home</Link></li>
-              <li><Link to="/membership" className="hover:text-brand-cyan transition-colors" onClick={() => window.scrollTo(0,0)}>Membership</Link></li>
-              <li><Link to="/events" className="hover:text-brand-cyan transition-colors" onClick={() => window.scrollTo(0,0)}>Events</Link></li>
-              <li><Link to="/v-deck" className="hover:text-brand-cyan transition-colors font-bold text-brand-blue" onClick={() => window.scrollTo(0,0)}>V-Deck 2026</Link></li>
-            </ul>
           </div>
           <div>
             <h4 className="font-display font-bold mb-6 uppercase text-xs tracking-widest text-slate-300">Contact</h4>
