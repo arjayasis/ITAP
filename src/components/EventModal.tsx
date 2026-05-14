@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Calendar, MapPin, Clock, X, ExternalLink, Share2, Twitter, Linkedin, Facebook, Link as LinkIcon } from 'lucide-react';
 
 export interface Event {
+  id: string;
   title: string;
   date: string;
   image: string | null;
@@ -16,7 +17,9 @@ interface EventModalProps {
 }
 
 export const EventModal = ({ event, onClose }: EventModalProps) => {
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const shareUrl = typeof window !== 'undefined' 
+    ? `${window.location.origin}${window.location.pathname}?id=${event.id}`
+    : '';
   const shareText = `Check out this ITAP event: ${event.title}`;
 
   const handleShare = (platform: string) => {

@@ -750,6 +750,7 @@ const LatestEvents = () => {
 
   const latestEvents: Event[] = [
     {
+      id: "1st-gmm-2026",
       title: "ITAP Sets the Pace for 2026 at Its 1st General Membership Meeting",
       date: "2026-04-28",
       image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/1st-GMM2026.jpg",
@@ -767,6 +768,7 @@ The event also welcomed new members into the ITAP community, including Shield Co
 The successful gathering highlighted ITAP’s vision of building a stronger, more connected, and future-ready Philippine tech industry.`
     },
     {
+      id: "gmm-christmas-2025",
       title: "General Membership Meeting (GMM) and Christmas Party",
       date: "2025-11-19",
       image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/itap 2025 gmm.jpg",
@@ -787,6 +789,7 @@ Holiday Fellowship: Members transitioned from high-level tech discussions to a f
 Under the leadership of President Michael Ngan, the event reinforced ITAP's commitment to driving digital innovation and collaboration within the Philippine ICT sector.`
     },
     {
+      id: "11th-golf-2025",
       title: "11th ITAP & Friends Golf Tournament: A Celebration of Camaraderie and Connection",
       date: "2025-06-23",
       image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/10th ITAP Golf Tournament.jpg",
@@ -856,7 +859,7 @@ Recap Video: https://youtu.be/EFsuvbBv8AM`
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      const shareUrl = window.location.origin + '/events';
+                      const shareUrl = `${window.location.origin}/events?id=${event.id}`;
                       const shareText = `Check out this ITAP event: ${event.title}`;
                       if (navigator.share) {
                         navigator.share({
