@@ -9,12 +9,20 @@ export interface Event {
   image: string | null;
   venue: string;
   overview: string;
+  videoUrl?: string;
 }
 
 interface EventModalProps {
   event: Event;
   onClose: () => void;
 }
+
+const getYouTubeEmbedUrl = (url?: string) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+};
 
 export const EventModal = ({ event, onClose }: EventModalProps) => {
   const shareUrl = typeof window !== 'undefined' 
@@ -115,6 +123,21 @@ export const EventModal = ({ event, onClose }: EventModalProps) => {
                   {event.overview !== 'N/A' ? event.overview : 'No additional details available for this event.'}
                 </div>
               </div>
+
+              {event.videoUrl && getYouTubeEmbedUrl(event.videoUrl) && (
+                <div className="space-y-4 pt-4 border-t border-white/10">
+                  <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-brand-cyan font-bold">Event Video</h3>
+                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black">
+                    <iframe
+                      src={getYouTubeEmbedUrl(event.videoUrl)!}
+                      title={event.title}
+                      className="absolute top-0 left-0 w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="md:w-64 shrink-0 space-y-6">

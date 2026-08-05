@@ -6,6 +6,23 @@ import { Event, EventModal } from '../components/EventModal';
 
 const eventsData: Event[] = [
   {
+    id: "12th-golf-2026",
+    title: "ITAP 12th Golf Tournament: Swing for a Cause",
+    date: "2026-08-03",
+    image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/12th%20ITAP%20Golf%202026.jpg",
+    venue: "Sta. Elena Golf & Country Club, Sta. Rosa, Laguna",
+    videoUrl: "https://www.youtube.com/watch?v=4xsEpoetelQ",
+    overview: `Grounded in the spirit of purpose and partnership, "Swing for a Cause" brought together tech leaders and visionaries to turn passion into purpose. Beyond the friendly rivalry on the greens, the event highlighted the industry’s shared commitment to making a lasting impact off the course.
+
+Event Highlights:
+
+• The Ceremonial Drive: The energy was high from first light as key ITAP leaders officially set the event in motion at Hole #1, signaling the start of a dynamic day of competitive play and high spirits across the course.
+
+• Driving Impact & Connection: Beyond the front and back nine, the afternoon shifted focus toward giving back—featuring key corporate social responsibility highlights from ITAP leadership and well-deserved recognition for our dedicated sponsors.
+
+• Victories, Prizes & Celebration: The day reached a high note as champions were crowned across all categories, major raffle prizes were awarded, and participants wrapped up the occasion celebrating shared wins and lasting industry ties.`
+  },
+  {
     id: "1st-gmm-2026",
     title: "ITAP Sets the Pace for 2026 at Its 1st General Membership Meeting",
     date: "2026-04-28",
