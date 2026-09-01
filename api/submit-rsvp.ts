@@ -8,20 +8,24 @@ export default async function handler(
     return response.status(405).json({ error: 'Method not allowed' });
   }
 
-  const webhookUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
+  const webhookUrl = process.env.GOOGLE_SHEETS_TECHX_WEBHOOK_URL || process.env.GOOGLE_SHEETS_WEBHOOK_URL || process.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
 
   if (!webhookUrl) {
-    console.error('GOOGLE_SHEETS_WEBHOOK_URL is not defined');
-    return response.status(500).json({ error: 'Server configuration error' });
+    console.warn('GOOGLE_SHEETS_WEBHOOK_URL is not defined in environment variables. Simulating RSVP save.');
+    return response.status(200).json({ 
+      success: true, 
+      simulated: true,
+      message: 'RSVP recorded in preview mode (Webhook URL not configured)' 
+    });
   }
 
   try {
-    const formData = request.body;
+    const formData = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
     
     // Convert the incoming body to URLSearchParams for Google Apps Script
     const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(formData)) {
-      params.append(key, value as string);
+    for (const [key, value] of Object.entries(formData || {})) {
+      params.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
     }
 
     const googleResponse = await fetch(webhookUrl, {
@@ -38,7 +42,7 @@ export default async function handler(
       return response.status(200).json({ success: true, message: result });
     } else {
       console.error('Google Sheets error:', result);
-      return response.status(googleResponse.status).json({ error: 'Failed to submit to Google Sheets' });
+      return response.status(googleResponse.status).json({ error: 'Failed to submit to Google Sheets', details: result });
     }
   } catch (error: any) {
     console.error('Submission error:', error);

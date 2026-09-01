@@ -18,19 +18,24 @@ export default defineConfig(({mode}) => {
               req.on('data', chunk => { body += chunk; });
               req.on('end', async () => {
                 try {
-                  const data = JSON.parse(body);
-                  const webhookUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL || process.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
+                  const data = JSON.parse(body || '{}');
+                  const webhookUrl = process.env.GOOGLE_SHEETS_TECHX_WEBHOOK_URL || process.env.GOOGLE_SHEETS_WEBHOOK_URL || process.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
                   
                   if (!webhookUrl) {
-                    res.statusCode = 500;
+                    console.log('ℹ️ [Dev Mock API] RSVP Received:', data);
+                    res.statusCode = 200;
                     res.setHeader('Content-Type', 'application/json');
-                    res.end(JSON.stringify({ error: 'GOOGLE_SHEETS_WEBHOOK_URL not defined in .env' }));
+                    res.end(JSON.stringify({ 
+                      success: true, 
+                      simulated: true, 
+                      message: 'RSVP recorded in preview mode (Set GOOGLE_SHEETS_WEBHOOK_URL to sync to live Google Sheet)' 
+                    }));
                     return;
                   }
 
                   const params = new URLSearchParams();
                   for (const [key, value] of Object.entries(data)) {
-                    params.append(key, value as string);
+                    params.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
                   }
 
                   const googleResponse = await fetch(webhookUrl, {

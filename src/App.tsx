@@ -36,6 +36,7 @@ import DeckGMM2026 from './pages/DeckGMM2026';
 import Page23 from './pages/Page23';
 import PageVerticalDeck from './pages/PageVerticalDeck';
 import JoinMembership from './pages/JoinMembership';
+import GMMTechXSummit2026 from './pages/GMMTechXSummit2026';
 import { Event, EventModal } from './components/EventModal';
 import { memberCompanies } from './data/membersData';
 
@@ -750,6 +751,22 @@ const LatestEvents = () => {
 
   const latestEvents: Event[] = [
     {
+      id: "2nd-gmm-2026-techx",
+      title: "ITAP 2nd General Membership Meeting 2026 @ T.I.P. Tech X Summit",
+      date: "2026-10-15",
+      image: "https://marketing.timcorp.net.ph/hubfs/ITAP/techx%20for%20dark.png",
+      venue: "T.I.P. Quezon City Anniversary Hall | 8:00 AM – 5:00 PM",
+      overview: `ITAP is proud to announce its 2nd General Membership Meeting for 2026 (2nd GMM 2026) in partnership with the T.I.P. Tech X Summit 2026 under the banner theme: “Creating What’s Next”.
+
+Stronger Together. Innovating Tomorrow. Shaping the Future.
+
+Event Highlights & Key Pillars:
+• Network: Connect with top C-level ICT executives, enterprise leaders, and academic innovators.
+• Collaborate: Build strategic technology partnerships and co-develop transformative initiatives.
+• Innovate: Explore breakthroughs in AI, Cloud, Cybersecurity, and Emerging Technologies.
+• Transform: Pioneer high-impact industry policies and sustainable digital transformation.`
+    },
+    {
       id: "12th-golf-2026",
       title: "ITAP 12th Golf Tournament: Swing for a Cause",
       date: "2026-08-03",
@@ -1066,8 +1083,8 @@ const ContactSection = () => {
 
 function App() {
   const { pathname } = useLocation();
-  const normalizedPath = pathname.toLowerCase().replace(/\/$/, '');
-  const hideGlobalUI = normalizedPath === '/gmm2026' || normalizedPath === '/deck-gmm2026' || normalizedPath === '/2-3' || normalizedPath === '/v-deck' || normalizedPath === '/v';
+  const normalizedPath = decodeURIComponent(pathname.toLowerCase()).replace(/\/$/, '');
+  const hideGlobalUI = normalizedPath === '/gmm2026' || normalizedPath === '/deck-gmm2026' || normalizedPath === '/2-3' || normalizedPath === '/v-deck' || normalizedPath === '/v' || normalizedPath.includes('techxsummit2026');
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -1100,6 +1117,8 @@ function App() {
           <Route path="/v-deck" element={<PageTransition><PageVerticalDeck /></PageTransition>} />
           <Route path="/v" element={<PageTransition><PageVerticalDeck /></PageTransition>} />
           <Route path="/join-membership" element={<PageTransition><JoinMembership /></PageTransition>} />
+          <Route path="/GMM@TechXSummit2026" element={<PageTransition><GMMTechXSummit2026 /></PageTransition>} />
+          <Route path="/gmm@techxsummit2026" element={<PageTransition><GMMTechXSummit2026 /></PageTransition>} />
         </Routes>
       </AnimatePresence>
 
