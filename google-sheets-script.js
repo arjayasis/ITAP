@@ -32,6 +32,9 @@ function setupHeaders(sheet) {
     "Job Title / Position",
     "Work Email",
     "Mobile Number",
+    "With Companion?",
+    "Companion Name",
+    "Companion Designation",
     "Event Name",
     "Venue",
     "Submission Source"
@@ -82,6 +85,9 @@ function doPost(e) {
     var jobTitle = data.jobTitle || data.position || data.title || "N/A";
     var email = data.email || "N/A";
     var mobile = data.mobile || data.phone || data.contact || "N/A";
+    var hasCompanion = (data.hasCompanion === 'yes' || data.hasCompanion === true || data.hasCompanion === 'true') ? "Yes" : "No";
+    var companionName = hasCompanion === "Yes" ? (data.companionName || "N/A") : "None";
+    var companionDesignation = hasCompanion === "Yes" ? (data.companionDesignation || data.companionTitle || "N/A") : "None";
     var eventName = data.event || "ITAP 2nd General Membership Meeting 2026";
     var venue = data.venue || "Technological Institute of the Philippines (T.I.P.) Quezon City";
     var source = data.source || "Web Portal RSVP";
@@ -95,6 +101,9 @@ function doPost(e) {
       jobTitle,
       email,
       mobile,
+      hasCompanion,
+      companionName,
+      companionDesignation,
       eventName,
       venue,
       source

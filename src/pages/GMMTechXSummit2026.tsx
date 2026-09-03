@@ -42,6 +42,9 @@ interface FormData {
   jobTitle: string;
   email: string;
   mobile: string;
+  hasCompanion: boolean;
+  companionName: string;
+  companionDesignation: string;
 }
 
 interface FormErrors {
@@ -50,6 +53,8 @@ interface FormErrors {
   jobTitle?: string;
   email?: string;
   mobile?: string;
+  companionName?: string;
+  companionDesignation?: string;
 }
 
 export const GMMTechXSummit2026: React.FC = () => {
@@ -58,7 +63,10 @@ export const GMMTechXSummit2026: React.FC = () => {
     companyName: '',
     jobTitle: '',
     email: '',
-    mobile: ''
+    mobile: '',
+    hasCompanion: false,
+    companionName: '',
+    companionDesignation: ''
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -107,6 +115,9 @@ export const GMMTechXSummit2026: React.FC = () => {
         email: 'test-sync@itaphil.com',
         mobile: '+63 900 000 0000',
         phone: '+63 900 000 0000',
+        hasCompanion: 'no',
+        companionName: 'None',
+        companionDesignation: 'None',
         event: 'ITAP 2nd General Membership Meeting 2026',
         venue: 'Technological Institute of the Philippines (T.I.P.) Quezon City',
         attendance: 'yes',
@@ -155,6 +166,17 @@ export const GMMTechXSummit2026: React.FC = () => {
         if (!value || typeof value !== 'string' || !value.trim()) return 'Mobile number is required';
         if (!/^[0-9+()\s-]{7,20}$/.test(value)) return 'Please enter a valid contact number';
         return undefined;
+      case 'companionName':
+        if (formData.hasCompanion) {
+          if (!value || typeof value !== 'string' || !value.trim()) return 'Companion full name is required';
+          if (value.trim().length < 2) return "Please enter companion's complete name";
+        }
+        return undefined;
+      case 'companionDesignation':
+        if (formData.hasCompanion) {
+          if (!value || typeof value !== 'string' || !value.trim()) return 'Companion designation is required';
+        }
+        return undefined;
       default:
         return undefined;
     }
@@ -198,7 +220,9 @@ export const GMMTechXSummit2026: React.FC = () => {
       companyName: true,
       jobTitle: true,
       email: true,
-      mobile: true
+      mobile: true,
+      companionName: formData.hasCompanion,
+      companionDesignation: formData.hasCompanion
     });
 
     if (Object.keys(newErrors).length === 0) {
@@ -218,6 +242,10 @@ export const GMMTechXSummit2026: React.FC = () => {
         email: formData.email.trim(),
         mobile: formData.mobile.trim(),
         phone: formData.mobile.trim(),
+        hasCompanion: formData.hasCompanion ? 'yes' : 'no',
+        companionName: formData.hasCompanion ? formData.companionName.trim() : 'None',
+        companionDesignation: formData.hasCompanion ? formData.companionDesignation.trim() : 'None',
+        companionTitle: formData.hasCompanion ? formData.companionDesignation.trim() : 'None',
         event: 'ITAP 2nd General Membership Meeting 2026',
         venue: 'Technological Institute of the Philippines (T.I.P.) Quezon City',
         attendance: 'yes',
@@ -267,7 +295,10 @@ export const GMMTechXSummit2026: React.FC = () => {
       companyName: '',
       jobTitle: '',
       email: '',
-      mobile: ''
+      mobile: '',
+      hasCompanion: false,
+      companionName: '',
+      companionDesignation: ''
     });
     setErrors({});
     setTouched({});
@@ -702,6 +733,138 @@ export const GMMTechXSummit2026: React.FC = () => {
                           )}
                         </div>
 
+                        {/* Companion Section (1 Companion Allowed) */}
+                        <div className="pt-2 border-t border-white/10 space-y-3.5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <label className="text-xs font-mono uppercase tracking-wider text-slate-300 flex items-center gap-1.5 font-bold">
+                              <Users className="w-3.5 h-3.5 text-[#05BFE0]" />
+                              <span>Attending with a Companion? (Max 1)</span>
+                            </label>
+                            <span className="text-[11px] font-mono text-slate-400">1 Companion Seat Allowed</span>
+                          </div>
+
+                          {/* Companion Selector Toggle Buttons */}
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <button
+                              type="button"
+                              id="btnCompanionNo"
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, hasCompanion: false, companionName: '', companionDesignation: '' }));
+                                setErrors(prev => ({ ...prev, companionName: undefined, companionDesignation: undefined }));
+                              }}
+                              className={`py-2.5 px-3.5 rounded-xl text-xs font-mono font-bold transition-all border flex items-center justify-center gap-2 ${
+                                !formData.hasCompanion
+                                  ? 'bg-[#05BFE0]/15 border-[#05BFE0] text-[#05BFE0] shadow-[0_0_15px_rgba(5,191,224,0.15)]'
+                                  : 'bg-[#0B0F2B]/60 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
+                              }`}
+                            >
+                              <User className="w-3.5 h-3.5" />
+                              <span>No (Attending Solo)</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              id="btnCompanionYes"
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, hasCompanion: true }));
+                              }}
+                              className={`py-2.5 px-3.5 rounded-xl text-xs font-mono font-bold transition-all border flex items-center justify-center gap-2 ${
+                                formData.hasCompanion
+                                  ? 'bg-[#FF2D8D]/15 border-[#FF2D8D] text-[#FF2D8D] shadow-[0_0_15px_rgba(255,45,141,0.2)]'
+                                  : 'bg-[#0B0F2B]/60 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
+                              }`}
+                            >
+                              <Users className="w-3.5 h-3.5" />
+                              <span>Yes (Bringing 1 Companion)</span>
+                            </button>
+                          </div>
+
+                          {/* Companion Details Fields (Conditional) */}
+                          <AnimatePresence>
+                            {formData.hasCompanion && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.25 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="p-4 rounded-2xl bg-[#070A1E] border border-[#FF2D8D]/30 space-y-3.5 mt-1 shadow-[0_0_20px_rgba(255,45,141,0.08)]">
+                                  <div className="flex items-center justify-between pb-1 border-b border-white/10">
+                                    <span className="text-[11px] font-mono text-[#FF2D8D] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                      <Sparkles className="w-3 h-3 text-[#FF2D8D]" />
+                                      <span>Companion Information</span>
+                                    </span>
+                                    <span className="text-[10px] font-mono text-slate-400">Delegate Badge #2</span>
+                                  </div>
+
+                                  {/* Companion Name */}
+                                  <div className="space-y-1.5">
+                                    <label htmlFor="companionName" className="block text-xs font-mono uppercase tracking-wider text-slate-300">
+                                      Companion Full Name <span className="text-[#FF2D8D]">*</span>
+                                    </label>
+                                    <div className="relative">
+                                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                        <User className="w-4 h-4" />
+                                      </div>
+                                      <input
+                                        type="text"
+                                        id="companionName"
+                                        name="companionName"
+                                        value={formData.companionName}
+                                        onChange={handleChange}
+                                        onBlur={handleBlur}
+                                        placeholder="e.g. Juan dela Cruz"
+                                        className={`w-full pl-10 pr-4 py-3 bg-[#0B0F2B]/80 text-white placeholder-slate-500 rounded-xl text-sm border transition-all duration-200 focus:outline-none ${
+                                          errors.companionName && touched.companionName
+                                            ? 'border-[#FF2D8D] ring-1 ring-[#FF2D8D]'
+                                            : 'border-white/15 hover:border-white/25 focus:border-[#FF2D8D] focus:ring-1 focus:ring-[#FF2D8D]'
+                                        }`}
+                                      />
+                                    </div>
+                                    {errors.companionName && touched.companionName && (
+                                      <p className="text-[11px] text-[#FF2D8D] flex items-center gap-1 font-mono">
+                                        <AlertCircle className="w-3 h-3" /> {errors.companionName}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Companion Designation */}
+                                  <div className="space-y-1.5">
+                                    <label htmlFor="companionDesignation" className="block text-xs font-mono uppercase tracking-wider text-slate-300">
+                                      Companion Designation / Job Title <span className="text-[#FF2D8D]">*</span>
+                                    </label>
+                                    <div className="relative">
+                                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                        <Briefcase className="w-4 h-4" />
+                                      </div>
+                                      <input
+                                        type="text"
+                                        id="companionDesignation"
+                                        name="companionDesignation"
+                                        value={formData.companionDesignation}
+                                        onChange={handleChange}
+                                        onBlur={handleBlur}
+                                        placeholder="e.g. Vice President / Executive Assistant"
+                                        className={`w-full pl-10 pr-4 py-3 bg-[#0B0F2B]/80 text-white placeholder-slate-500 rounded-xl text-sm border transition-all duration-200 focus:outline-none ${
+                                          errors.companionDesignation && touched.companionDesignation
+                                            ? 'border-[#FF2D8D] ring-1 ring-[#FF2D8D]'
+                                            : 'border-white/15 hover:border-white/25 focus:border-[#FF2D8D] focus:ring-1 focus:ring-[#FF2D8D]'
+                                        }`}
+                                      />
+                                    </div>
+                                    {errors.companionDesignation && touched.companionDesignation && (
+                                      <p className="text-[11px] text-[#FF2D8D] flex items-center gap-1 font-mono">
+                                        <AlertCircle className="w-3 h-3" /> {errors.companionDesignation}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
                       </div>
 
                       {/* Submit CTA Button */}
@@ -808,6 +971,24 @@ export const GMMTechXSummit2026: React.FC = () => {
                             <span className="text-white font-medium">Technological Institute of the Philippines (T.I.P.)</span>
                           </div>
                         </div>
+
+                        {/* Companion Badge in Digital Pass */}
+                        {formData.hasCompanion && formData.companionName && (
+                          <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                            <div>
+                              <span className="text-[10px] font-mono text-[#FF2D8D] uppercase tracking-widest flex items-center gap-1 font-bold">
+                                <Users className="w-3 h-3 text-[#FF2D8D]" /> Accompanying Companion (1 Pass)
+                              </span>
+                              <div className="text-white font-medium mt-0.5">{formData.companionName}</div>
+                              <div className="text-[11px] text-slate-400">{formData.companionDesignation}</div>
+                            </div>
+                            <div className="sm:text-right">
+                              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 inline-block font-semibold">
+                                ✓ Companion Seat Reserved
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Action Buttons */}
@@ -1111,6 +1292,9 @@ function setupHeaders(sheet) {
     "Job Title / Position",
     "Work Email",
     "Mobile Number",
+    "With Companion?",
+    "Companion Name",
+    "Companion Designation",
     "Event Name",
     "Venue",
     "Submission Source"
@@ -1154,6 +1338,9 @@ function doPost(e) {
     var jobTitle = data.jobTitle || data.position || data.title || "N/A";
     var email = data.email || "N/A";
     var mobile = data.mobile || data.phone || data.contact || "N/A";
+    var hasCompanion = (data.hasCompanion === true || data.hasCompanion === 'yes' || data.hasCompanion === 'true') ? "Yes" : "No";
+    var companionName = data.companionName && data.companionName !== 'None' ? data.companionName : "N/A";
+    var companionDesignation = data.companionDesignation && data.companionDesignation !== 'None' ? data.companionDesignation : (data.companionTitle || "N/A");
     var eventName = data.event || "ITAP 2nd General Membership Meeting 2026";
     var venue = data.venue || "Technological Institute of the Philippines (T.I.P.) Quezon City";
     var source = data.source || "Web Portal RSVP";
@@ -1166,6 +1353,9 @@ function doPost(e) {
       jobTitle,
       email,
       mobile,
+      hasCompanion,
+      companionName,
+      companionDesignation,
       eventName,
       venue,
       source
@@ -1213,7 +1403,7 @@ function doGet(e) {
                     <p className="text-slate-500">// Saved in project root at /google-sheets-script.js</p>
                     <p className="text-[#05BFE0]">function setupHeaders(sheet) &#123; ... &#125;</p>
                     <p className="text-[#FF2D8D]">function doPost(e) &#123; ... &#125;</p>
-                    <p className="text-slate-400">Records: Timestamp, Reg ID, Full Name, Company, Job Title, Email, Mobile</p>
+                    <p className="text-slate-400">Records: Timestamp, Reg ID, Full Name, Company, Job Title, Email, Mobile, Companion Info</p>
                   </div>
                 </div>
 
