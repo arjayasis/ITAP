@@ -34,23 +34,42 @@ function setupHeaders(sheet) {
     "Mobile Number",
     "With Companion?",
     "Companion Name",
-    "Companion Designation",
-    "Event Name",
-    "Venue",
-    "Submission Source"
+    "Companion Designation"
   ];
   
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(headers);
-    // Format headers
-    const headerRange = sheet.getRange(1, 1, 1, headers.length);
-    headerRange.setBackground("#0B0F2B");
-    headerRange.setFontColor("#05BFE0");
-    headerRange.setFontWeight("bold");
-    headerRange.setFontFamily("Roboto");
-    sheet.setFrozenRows(1);
-    sheet.autoResizeColumns(1, headers.length);
+  } else {
+    // Check if row 1 needs header update (e.g. still has "Event Name" or missing "With Companion?")
+    const lastCol = Math.max(sheet.getLastColumn(), headers.length);
+    const currentHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    const needsUpdate = !currentHeaders.includes("With Companion?") || currentHeaders.includes("Event Name");
+    
+    if (needsUpdate) {
+      // Overwrite Row 1 with the updated headers
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      // Clear any leftover old header cells (like Event Name, Venue, Submission Source)
+      if (lastCol > headers.length) {
+        sheet.getRange(1, headers.length + 1, 1, lastCol - headers.length).clearContent();
+      }
+    }
   }
+
+  // Format headers with dark theme and cyan accent
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setBackground("#0B0F2B");
+  headerRange.setFontColor("#05BFE0");
+  headerRange.setFontWeight("bold");
+  headerRange.setFontFamily("Arial");
+  sheet.setFrozenRows(1);
+  sheet.autoResizeColumns(1, headers.length);
+}
+
+// Manual helper you can run once inside Apps Script to format your headers immediately
+function updateHeadersNow() {
+  var doc = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = doc.getSheetByName("TechX_RSVP_2026") || doc.getActiveSheet();
+  setupHeaders(sheet);
 }
 
 function doPost(e) {
@@ -61,7 +80,7 @@ function doPost(e) {
     var doc = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = doc.getSheetByName("TechX_RSVP_2026") || doc.getActiveSheet();
     
-    // Auto-initialize header columns if sheet is fresh
+    // Auto-update header columns if needed
     setupHeaders(sheet);
 
     var data = {};
@@ -71,7 +90,6 @@ function doPost(e) {
       try {
         data = JSON.parse(e.postData.contents);
       } catch (err) {
-        // Fallback for form-url-encoded
         data = e.parameter || {};
       }
     } else if (e.parameter) {
@@ -85,14 +103,13 @@ function doPost(e) {
     var jobTitle = data.jobTitle || data.position || data.title || "N/A";
     var email = data.email || "N/A";
     var mobile = data.mobile || data.phone || data.contact || "N/A";
+    
+    // Companion details
     var hasCompanion = (data.hasCompanion === 'yes' || data.hasCompanion === true || data.hasCompanion === 'true') ? "Yes" : "No";
-    var companionName = hasCompanion === "Yes" ? (data.companionName || "N/A") : "None";
+    var companionName = hasCompanion === "Yes" ? (data.companionName && data.companionName !== 'None' ? data.companionName : "N/A") : "None";
     var companionDesignation = hasCompanion === "Yes" ? (data.companionDesignation || data.companionTitle || "N/A") : "None";
-    var eventName = data.event || "ITAP 2nd General Membership Meeting 2026";
-    var venue = data.venue || "Technological Institute of the Philippines (T.I.P.) Quezon City";
-    var source = data.source || "Web Portal RSVP";
 
-    // Append attendee record
+    // Append attendee record without Event Name, Venue, or Submission Source
     sheet.appendRow([
       timestamp,
       registrationId,
@@ -103,10 +120,7 @@ function doPost(e) {
       mobile,
       hasCompanion,
       companionName,
-      companionDesignation,
-      eventName,
-      venue,
-      source
+      companionDesignation
     ]);
 
     return ContentService

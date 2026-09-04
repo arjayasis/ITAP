@@ -28,11 +28,7 @@ import {
   Layers,
   Lightbulb,
   Award,
-  Users,
-  Database,
-  Copy,
-  Code,
-  Loader2
+  Users
 } from 'lucide-react';
 import { memberCompanies } from '../data/membersData';
 
@@ -75,74 +71,7 @@ export const GMMTechXSummit2026: React.FC = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [registrationId, setRegistrationId] = useState('');
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  const [showGoogleSheetsModal, setShowGoogleSheetsModal] = useState(false);
-  const [copiedScript, setCopiedScript] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [webhookUrlInput, setWebhookUrlInput] = useState(() => {
-    return localStorage.getItem('techx_sheets_webhook') || (import.meta as any).env?.VITE_GOOGLE_SHEETS_WEBHOOK_URL || '';
-  });
-  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
-  const [testMessage, setTestMessage] = useState('');
-
-  const handleTestWebhook = async () => {
-    if (!webhookUrlInput.trim()) {
-      setTestStatus('error');
-      setTestMessage('Please paste your Google Apps Script Web App URL first.');
-      return;
-    }
-
-    if (!webhookUrlInput.startsWith('https://script.google.com/macros/s/')) {
-      setTestStatus('error');
-      setTestMessage('URL must start with https://script.google.com/macros/s/... and end with /exec');
-      return;
-    }
-
-    setTestStatus('testing');
-    setTestMessage('Sending test RSVP ping to your Google Sheet...');
-
-    try {
-      localStorage.setItem('techx_sheets_webhook', webhookUrlInput.trim());
-
-      const testPayload = {
-        timestamp: new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' }),
-        registrationId: `TEST-PING-${Math.floor(1000 + Math.random() * 9000)}`,
-        fullName: 'Connection Test (ITAP Bot)',
-        name: 'Connection Test (ITAP Bot)',
-        companyName: 'ITAP Live Sync Validator',
-        company: 'ITAP Live Sync Validator',
-        jobTitle: 'Diagnostic Ping',
-        position: 'Diagnostic Ping',
-        email: 'test-sync@itaphil.com',
-        mobile: '+63 900 000 0000',
-        phone: '+63 900 000 0000',
-        hasCompanion: 'no',
-        companionName: 'None',
-        companionDesignation: 'None',
-        event: 'ITAP 2nd General Membership Meeting 2026',
-        venue: 'Technological Institute of the Philippines (T.I.P.) Quezon City',
-        attendance: 'yes',
-        source: 'Live Sync Diagnostic Ping'
-      };
-
-      const params = new URLSearchParams();
-      Object.entries(testPayload).forEach(([k, v]) => params.append(k, String(v)));
-
-      await fetch(webhookUrlInput.trim(), {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: params
-      });
-
-      setTestStatus('success');
-      setTestMessage('✅ Test RSVP ping dispatched! Check your Google Sheet now. A test row should appear.');
-    } catch (err: any) {
-      setTestStatus('error');
-      setTestMessage(`Error: ${err.message || 'Failed to dispatch ping'}`);
-    }
-  };
 
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -242,33 +171,48 @@ export const GMMTechXSummit2026: React.FC = () => {
         email: formData.email.trim(),
         mobile: formData.mobile.trim(),
         phone: formData.mobile.trim(),
-        hasCompanion: formData.hasCompanion ? 'yes' : 'no',
-        companionName: formData.hasCompanion ? formData.companionName.trim() : 'None',
-        companionDesignation: formData.hasCompanion ? formData.companionDesignation.trim() : 'None',
-        companionTitle: formData.hasCompanion ? formData.companionDesignation.trim() : 'None',
-        event: 'ITAP 2nd General Membership Meeting 2026',
-        venue: 'Technological Institute of the Philippines (T.I.P.) Quezon City',
-        attendance: 'yes',
-        source: 'GMM@TechXSummit2026'
+        hasCompanion: formData.hasCompanion ? 'Yes' : 'No',
+        companionName: formData.hasCompanion ? (formData.companionName.trim() || 'N/A') : 'None',
+        companionDesignation: formData.hasCompanion ? (formData.companionDesignation.trim() || 'N/A') : 'None',
+        companionTitle: formData.hasCompanion ? (formData.companionDesignation.trim() || 'N/A') : 'None',
+        // Direct compatibility with currently deployed Apps Script columns (H, I, J):
+        event: formData.hasCompanion ? 'Yes' : 'No',
+        eventName: formData.hasCompanion ? 'Yes' : 'No',
+        venue: formData.hasCompanion ? (formData.companionName.trim() || 'N/A') : 'None',
+        source: formData.hasCompanion ? (formData.companionDesignation.trim() || 'N/A') : 'None',
+        attendance: 'yes'
       };
 
-      const activeWebhook = webhookUrlInput || localStorage.getItem('techx_sheets_webhook') || (import.meta as any).env?.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
+      // Purge any invalid /dev URLs that may have been previously stored in localStorage
+      const stored = localStorage.getItem('techx_sheets_webhook');
+      if (stored && (stored.includes('/dev') || !stored.endsWith('/exec') || stored.includes('AKfycbx6JpS4WkG99mA8dbryWxKWyJ2ZPXmtbSmXGhAGwLjq'))) {
+        localStorage.removeItem('techx_sheets_webhook');
+      }
+
+      const DEFAULT_TECHX_WEBHOOK = 'https://script.google.com/macros/s/AKfycbwZjUcC7UNIPniLLt4YncpwNXOFx42UkZCb8A8ATtYjAMBj-jz1OEnbvyM4Uu54PfhhnA/exec';
+      const activeWebhook = localStorage.getItem('techx_sheets_webhook') || (import.meta as any).env?.VITE_GOOGLE_SHEETS_WEBHOOK_URL || DEFAULT_TECHX_WEBHOOK;
 
       try {
         // 1. Send to serverless / local dev proxy
-        const serverPromise = fetch('/api/submit-rsvp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        }).catch(err => console.warn('Server route RSVP forward:', err));
+        let serverSuccess = false;
+        try {
+          const res = await fetch('/api/submit-rsvp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+          serverSuccess = res.ok;
+        } catch (err) {
+          console.warn('Server route RSVP forward error:', err);
+        }
 
-        // 2. If client webhook URL is provided, also send direct form-encoded POST
-        if (activeWebhook && activeWebhook.startsWith('https://script.google.com/')) {
+        // 2. If server failed or client webhook is configured, ensure Google Sheet receives submission
+        if (!serverSuccess && activeWebhook && activeWebhook.startsWith('https://script.google.com/')) {
           const formParams = new URLSearchParams();
           Object.entries(payload).forEach(([k, v]) => formParams.append(k, String(v)));
-          fetch(activeWebhook, {
+          await fetch(activeWebhook, {
             method: 'POST',
             mode: 'no-cors',
             headers: {
@@ -277,8 +221,6 @@ export const GMMTechXSummit2026: React.FC = () => {
             body: formParams
           }).catch(e => console.warn('Direct Google Sheets send:', e));
         }
-
-        await serverPromise;
       } catch (error) {
         console.warn('RSVP stored in client state (network fallback):', error);
       } finally {
@@ -1130,15 +1072,6 @@ export const GMMTechXSummit2026: React.FC = () => {
                 <Link to="/events" className="hover:text-[#05BFE0] transition-colors">Events</Link>
                 <span>•</span>
                 <button onClick={() => setShowPrivacyModal(true)} className="hover:text-[#05BFE0] transition-colors">Privacy</button>
-                <span>•</span>
-                <button 
-                  onClick={() => setShowGoogleSheetsModal(true)} 
-                  className="text-[#05BFE0] hover:text-white transition-colors flex items-center gap-1 font-semibold"
-                  title="Google Sheets Apps Script Connection Setup"
-                >
-                  <Database className="w-3 h-3" />
-                  <span>Google Sheets Setup</span>
-                </button>
               </div>
             </div>
 
@@ -1153,277 +1086,6 @@ export const GMMTechXSummit2026: React.FC = () => {
           </div>
         </div>
       </footer>
-
-      {/* GOOGLE SHEETS SETUP & APPS SCRIPT CONNECTION MODAL */}
-      <AnimatePresence>
-        {showGoogleSheetsModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-3xl bg-[#0B0F2B] border border-[#05BFE0]/40 rounded-3xl p-6 sm:p-8 text-left shadow-2xl relative max-h-[90vh] flex flex-col"
-            >
-              <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#05BFE0]/15 flex items-center justify-center text-[#05BFE0]">
-                    <Database className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-white font-display">
-                      Google Sheets Live RSVP Sync Script
-                    </h3>
-                    <p className="text-xs text-slate-400 font-mono">
-                      Google Apps Script Web App for collecting 2nd GMM 2026 RSVPs
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowGoogleSheetsModal(false)}
-                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="py-4 overflow-y-auto space-y-4 text-xs text-slate-300 leading-relaxed no-scrollbar flex-grow">
-                
-                {/* Steps banner */}
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-[#05BFE0]/25 space-y-2">
-                  <div className="text-xs font-mono font-bold text-[#05BFE0] uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-[#FF2D8D]" />
-                    <span>How to Connect in 3 Minutes:</span>
-                  </div>
-                  <ol className="list-decimal pl-5 space-y-1.5 text-slate-300">
-                    <li>Create a new Google Sheet at <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" className="text-[#05BFE0] underline">sheets.new</a>.</li>
-                    <li>Go to <strong>Extensions &gt; Apps Script</strong>.</li>
-                    <li>Replace all code in Apps Script with the script below.</li>
-                    <li>Click <strong>Deploy &gt; New deployment</strong> &gt; Select type: <strong>Web app</strong>.</li>
-                    <li>Set <em>Execute as:</em> <strong>Me</strong> and <em>Who has access:</em> <strong>Anyone</strong>.</li>
-                    <li>Click <strong>Deploy</strong> and copy the generated Web App URL.</li>
-                    <li>Set <code className="text-[#FF2D8D]">GOOGLE_SHEETS_WEBHOOK_URL</code> in your <code className="text-[#05BFE0]">.env</code> file.</li>
-                  </ol>
-                </div>
-
-                {/* Webhook URL Input & Test Ping */}
-                <div className="p-4 rounded-2xl bg-[#070A1E] border border-[#05BFE0]/30 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="webhookUrlInput" className="text-xs font-mono font-bold text-[#05BFE0] uppercase tracking-wider flex items-center gap-1.5">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Live Google Apps Script Web App URL</span>
-                    </label>
-                    <span className="text-[10px] font-mono text-slate-400">Ends in /exec</span>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="url"
-                      id="webhookUrlInput"
-                      value={webhookUrlInput}
-                      onChange={(e) => setWebhookUrlInput(e.target.value)}
-                      placeholder="https://script.google.com/macros/s/.../exec"
-                      className="flex-grow px-3.5 py-2 rounded-xl bg-[#0B0F2B] border border-white/15 text-white font-mono text-xs placeholder-slate-500 focus:outline-none focus:border-[#05BFE0]"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleTestWebhook}
-                      disabled={testStatus === 'testing'}
-                      className="px-4 py-2 rounded-xl bg-[#FF2D8D] hover:bg-[#FF2D8D]/90 text-white font-bold text-xs whitespace-nowrap transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
-                    >
-                      {testStatus === 'testing' ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Testing...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>Test & Link Sheet</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  {testMessage && (
-                    <div className={`p-2.5 rounded-lg text-[11px] font-mono leading-relaxed ${
-                      testStatus === 'success'
-                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                        : testStatus === 'error'
-                        ? 'bg-[#FF2D8D]/15 text-[#FF2D8D] border border-[#FF2D8D]/30'
-                        : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
-                    }`}>
-                      {testMessage}
-                    </div>
-                  )}
-
-                  <div className="text-[11px] text-slate-400 space-y-1">
-                    <p className="font-semibold text-slate-300">⚠️ Why an RSVP might not appear in your Google Sheet:</p>
-                    <ul className="list-disc pl-4 space-y-1 text-slate-400">
-                      <li><strong>Who has access:</strong> MUST be set to <code className="text-[#05BFE0]">"Anyone"</code> when deploying the Web App. (If set to "Only myself", Google blocks submissions).</li>
-                      <li><strong>Authorized Google Account:</strong> Click "Authorize Access" &gt; "Advanced" &gt; "Go to (unsafe)" &gt; "Allow" in Google Apps Script.</li>
-                      <li><strong>After editing code:</strong> Go to Deploy &gt; Manage deployments &gt; Edit (pencil) &gt; Version: <strong className="text-white">New version</strong> &gt; Deploy.</li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Code block with copy action */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <Code className="w-3.5 h-3.5 text-[#05BFE0]" />
-                      <span>Google Apps Script Code (Code.gs)</span>
-                    </span>
-                    <button
-                      onClick={() => {
-                        const scriptCode = `/**
- * ITAP 2nd General Membership Meeting 2026 @ Tech X Summit - RSVP Collector
- */
-function setupHeaders(sheet) {
-  const headers = [
-    "Timestamp",
-    "Registration ID",
-    "Full Name",
-    "Company / Organization",
-    "Job Title / Position",
-    "Work Email",
-    "Mobile Number",
-    "With Companion?",
-    "Companion Name",
-    "Companion Designation",
-    "Event Name",
-    "Venue",
-    "Submission Source"
-  ];
-  
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(headers);
-    const headerRange = sheet.getRange(1, 1, 1, headers.length);
-    headerRange.setBackground("#0B0F2B");
-    headerRange.setFontColor("#05BFE0");
-    headerRange.setFontWeight("bold");
-    sheet.setFrozenRows(1);
-    sheet.autoResizeColumns(1, headers.length);
-  }
-}
-
-function doPost(e) {
-  var lock = LockService.getScriptLock();
-  lock.tryLock(10000);
-
-  try {
-    var doc = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = doc.getSheetByName("TechX_RSVP_2026") || doc.getActiveSheet();
-    setupHeaders(sheet);
-
-    var data = {};
-    if (e.postData && e.postData.contents) {
-      try {
-        data = JSON.parse(e.postData.contents);
-      } catch (err) {
-        data = e.parameter || {};
-      }
-    } else if (e.parameter) {
-      data = e.parameter;
-    }
-
-    var timestamp = data.timestamp || new Date().toLocaleString("en-PH", { timeZone: "Asia/Manila" });
-    var registrationId = data.registrationId || data.regId || "TECHX-ITAP-" + Math.floor(100000 + Math.random() * 900000);
-    var fullName = data.fullName || data.name || "N/A";
-    var companyName = data.companyName || data.company || "N/A";
-    var jobTitle = data.jobTitle || data.position || data.title || "N/A";
-    var email = data.email || "N/A";
-    var mobile = data.mobile || data.phone || data.contact || "N/A";
-    var hasCompanion = (data.hasCompanion === true || data.hasCompanion === 'yes' || data.hasCompanion === 'true') ? "Yes" : "No";
-    var companionName = data.companionName && data.companionName !== 'None' ? data.companionName : "N/A";
-    var companionDesignation = data.companionDesignation && data.companionDesignation !== 'None' ? data.companionDesignation : (data.companionTitle || "N/A");
-    var eventName = data.event || "ITAP 2nd General Membership Meeting 2026";
-    var venue = data.venue || "Technological Institute of the Philippines (T.I.P.) Quezon City";
-    var source = data.source || "Web Portal RSVP";
-
-    sheet.appendRow([
-      timestamp,
-      registrationId,
-      fullName,
-      companyName,
-      jobTitle,
-      email,
-      mobile,
-      hasCompanion,
-      companionName,
-      companionDesignation,
-      eventName,
-      venue,
-      source
-    ]);
-
-    return ContentService
-      .createTextOutput(JSON.stringify({ status: "success", registrationId: registrationId }))
-      .setMimeType(ContentService.MimeType.JSON);
-
-  } catch (error) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function doGet(e) {
-  return ContentService
-    .createTextOutput(JSON.stringify({ status: "active", service: "ITAP Tech X Summit RSVP" }))
-    .setMimeType(ContentService.MimeType.JSON);
-}`;
-                        navigator.clipboard.writeText(scriptCode);
-                        setCopiedScript(true);
-                        setTimeout(() => setCopiedScript(false), 2500);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#05BFE0]/20 hover:bg-[#05BFE0]/30 text-[#05BFE0] font-mono text-[11px] font-bold border border-[#05BFE0]/30 transition-all"
-                    >
-                      {copiedScript ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-400">Copied to Clipboard!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Copy Script</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  <div className="p-3 bg-[#070A1E] rounded-xl border border-white/10 font-mono text-[11px] text-slate-300 max-h-52 overflow-y-auto space-y-1">
-                    <p className="text-slate-500">// Saved in project root at /google-sheets-script.js</p>
-                    <p className="text-[#05BFE0]">function setupHeaders(sheet) &#123; ... &#125;</p>
-                    <p className="text-[#FF2D8D]">function doPost(e) &#123; ... &#125;</p>
-                    <p className="text-slate-400">Records: Timestamp, Reg ID, Full Name, Company, Job Title, Email, Mobile, Companion Info</p>
-                  </div>
-                </div>
-
-              </div>
-
-              <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                <span className="text-[11px] font-mono text-slate-400">
-                  Script saved as <code className="text-[#05BFE0]">google-sheets-script.js</code>
-                </span>
-                <button
-                  onClick={() => setShowGoogleSheetsModal(false)}
-                  className="px-5 py-2 rounded-xl bg-[#05BFE0] text-[#0B0F2B] font-bold text-xs hover:bg-[#05BFE0]/90 transition-colors"
-                >
-                  Done
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* PRIVACY POLICY MODAL */}
       <AnimatePresence>

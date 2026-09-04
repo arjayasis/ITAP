@@ -19,7 +19,18 @@ export default defineConfig(({mode}) => {
               req.on('end', async () => {
                 try {
                   const data = JSON.parse(body || '{}');
-                  const webhookUrl = process.env.GOOGLE_SHEETS_TECHX_WEBHOOK_URL || process.env.GOOGLE_SHEETS_WEBHOOK_URL || process.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
+                  const NEW_TECHX_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwZjUcC7UNIPniLLt4YncpwNXOFx42UkZCb8A8ATtYjAMBj-jz1OEnbvyM4Uu54PfhhnA/exec';
+                  const isTechX = data?.source === 'GMM@TechXSummit2026' || (typeof data?.event === 'string' && data.event.includes('Tech'));
+                  let techxUrl = process.env.GOOGLE_SHEETS_TECHX_WEBHOOK_URL || env.GOOGLE_SHEETS_TECHX_WEBHOOK_URL;
+                  if (!techxUrl || techxUrl.includes('AKfycbx6JpS4WkG99mA8dbryWxKWyJ2ZPXmtbSmXGhAGwLjq') || techxUrl.endsWith('/dev')) {
+                    techxUrl = NEW_TECHX_WEBHOOK_URL;
+                  }
+                  const defaultUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL || env.GOOGLE_SHEETS_WEBHOOK_URL || process.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL || env.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
+
+                  let webhookUrl = (isTechX && techxUrl) ? techxUrl : (techxUrl || defaultUrl);
+                  if (webhookUrl && webhookUrl.endsWith('/dev')) {
+                    webhookUrl = webhookUrl.replace(/\/dev$/, '/exec');
+                  }
                   
                   if (!webhookUrl) {
                     console.log('ℹ️ [Dev Mock API] RSVP Received:', data);
@@ -31,6 +42,16 @@ export default defineConfig(({mode}) => {
                       message: 'RSVP recorded in preview mode (Set GOOGLE_SHEETS_WEBHOOK_URL to sync to live Google Sheet)' 
                     }));
                     return;
+                  }
+
+                  // Map companion data for columns H, I, J compatibility
+                  if (data && data.hasCompanion !== undefined) {
+                    const isComp = (data.hasCompanion === 'yes' || data.hasCompanion === 'Yes' || data.hasCompanion === true || data.hasCompanion === 'true');
+                    data.hasCompanion = isComp ? 'Yes' : 'No';
+                    data.event = isComp ? 'Yes' : 'No';
+                    data.eventName = isComp ? 'Yes' : 'No';
+                    data.venue = isComp ? (data.companionName || 'N/A') : 'None';
+                    data.source = isComp ? (data.companionDesignation || data.companionTitle || 'N/A') : 'None';
                   }
 
                   const params = new URLSearchParams();
@@ -63,6 +84,13 @@ export default defineConfig(({mode}) => {
     ],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      'import.meta.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL': JSON.stringify(
+        process.env.GOOGLE_SHEETS_WEBHOOK_URL ||
+        process.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL ||
+        env.GOOGLE_SHEETS_WEBHOOK_URL ||
+        env.VITE_GOOGLE_SHEETS_WEBHOOK_URL ||
+        ''
+      ),
     },
     resolve: {
       alias: {

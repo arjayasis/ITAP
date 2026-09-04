@@ -8,7 +8,19 @@ export default async function handler(
     return response.status(405).json({ error: 'Method not allowed' });
   }
 
-  const webhookUrl = process.env.GOOGLE_SHEETS_TECHX_WEBHOOK_URL || process.env.GOOGLE_SHEETS_WEBHOOK_URL || process.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
+  const formData = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
+  const NEW_TECHX_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwZjUcC7UNIPniLLt4YncpwNXOFx42UkZCb8A8ATtYjAMBj-jz1OEnbvyM4Uu54PfhhnA/exec';
+  const isTechX = formData?.source === 'GMM@TechXSummit2026' || (typeof formData?.event === 'string' && formData.event.includes('Tech'));
+  let techxUrl = process.env.GOOGLE_SHEETS_TECHX_WEBHOOK_URL;
+  if (!techxUrl || techxUrl.includes('AKfycbx6JpS4WkG99mA8dbryWxKWyJ2ZPXmtbSmXGhAGwLjq') || techxUrl.endsWith('/dev')) {
+    techxUrl = NEW_TECHX_WEBHOOK_URL;
+  }
+  const defaultUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL || process.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
+
+  let webhookUrl = (isTechX && techxUrl) ? techxUrl : (techxUrl || defaultUrl);
+  if (webhookUrl && webhookUrl.endsWith('/dev')) {
+    webhookUrl = webhookUrl.replace(/\/dev$/, '/exec');
+  }
 
   if (!webhookUrl) {
     console.warn('GOOGLE_SHEETS_WEBHOOK_URL is not defined in environment variables. Simulating RSVP save.');
@@ -22,6 +34,16 @@ export default async function handler(
   try {
     const formData = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
     
+    // Map companion data so it fills columns H, I, J on both new and existing Apps Script versions
+    if (formData && formData.hasCompanion !== undefined) {
+      const isComp = (formData.hasCompanion === 'yes' || formData.hasCompanion === 'Yes' || formData.hasCompanion === true || formData.hasCompanion === 'true');
+      formData.hasCompanion = isComp ? 'Yes' : 'No';
+      formData.event = isComp ? 'Yes' : 'No';
+      formData.eventName = isComp ? 'Yes' : 'No';
+      formData.venue = isComp ? (formData.companionName || 'N/A') : 'None';
+      formData.source = isComp ? (formData.companionDesignation || formData.companionTitle || 'N/A') : 'None';
+    }
+
     // Convert the incoming body to URLSearchParams for Google Apps Script
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(formData || {})) {
