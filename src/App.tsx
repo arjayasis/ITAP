@@ -755,7 +755,7 @@ const LatestEvents = () => {
       title: "ITAP 2nd General Membership Meeting 2026 @ T.I.P. Tech X Summit",
       date: "2026-10-15",
       image: "https://marketing.timcorp.net.ph/hubfs/ITAP/techx%20for%20dark.png",
-      venue: "T.I.P. Quezon City Anniversary Hall | 8:00 AM – 5:00 PM",
+      venue: "T.I.P. Quezon City Anniversary Hall | 8:30 AM – 5:30 PM",
       overview: `ITAP is proud to announce its 2nd General Membership Meeting for 2026 (2nd GMM 2026) in partnership with the T.I.P. Tech X Summit 2026 under the banner theme: “Creating What’s Next”.
 
 Stronger Together. Innovating Tomorrow. Shaping the Future.
