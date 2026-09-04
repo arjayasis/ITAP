@@ -318,7 +318,7 @@ export const GMMTechXSummit2026: React.FC = () => {
     const title = encodeURIComponent("ITAP 2nd General Membership Meeting 2026 @ Technological Institute of the Philippines (T.I.P.) Tech X Summit");
     const details = encodeURIComponent("Theme: Creating What’s Next | Stronger Together. Innovating Tomorrow. Shaping the Future.\n\nHosted by ITAP at Technological Institute of the Philippines (T.I.P.) Tech X Summit 2026.");
     const location = encodeURIComponent("Technological Institute of the Philippines (T.I.P.) Quezon City Anniversary Hall, 938 Aurora Blvd, Cubao, Quezon City, Metro Manila");
-    const dates = "20261015T003000Z/20261015T093000Z";
+    const dates = "20261015T000000Z/20261015T090000Z";
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${dates}`;
   };
 
@@ -452,7 +452,7 @@ export const GMMTechXSummit2026: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 block">Schedule</span>
-                    <span className="text-sm sm:text-base font-bold text-white">8:30 AM – 5:30 PM</span>
+                    <span className="text-sm sm:text-base font-bold text-white">8:00 AM – 5:00 PM</span>
                     <span className="text-xs text-slate-400 font-mono block">Full-Day Program & Luncheon</span>
                   </div>
                 </div>
@@ -964,7 +964,7 @@ export const GMMTechXSummit2026: React.FC = () => {
                           </div>
                           <div>
                             <span className="text-[10px] font-mono text-slate-400 block uppercase">Date & Time</span>
-                            <span className="text-white font-medium">Oct 15, 2026 | 8:30 AM – 5:30 PM</span>
+                            <span className="text-white font-medium">Oct 15, 2026 | 8AM-5PM</span>
                           </div>
                           <div className="col-span-2 sm:col-span-1">
                             <span className="text-[10px] font-mono text-slate-400 block uppercase">Venue</span>
