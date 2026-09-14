@@ -37,6 +37,9 @@ import Page23 from './pages/Page23';
 import PageVerticalDeck from './pages/PageVerticalDeck';
 import JoinMembership from './pages/JoinMembership';
 import GMMTechXSummit2026 from './pages/GMMTechXSummit2026';
+import { TechXParticipantQA } from './pages/qa/TechXParticipantQA';
+import { TechXHostQA } from './pages/qa/TechXHostQA';
+import { TechXLiveQA } from './pages/qa/TechXLiveQA';
 import { Event, EventModal } from './components/EventModal';
 import { memberCompanies } from './data/membersData';
 
@@ -1084,7 +1087,17 @@ const ContactSection = () => {
 function App() {
   const { pathname } = useLocation();
   const normalizedPath = decodeURIComponent(pathname.toLowerCase()).replace(/\/$/, '');
-  const hideGlobalUI = normalizedPath === '/gmm2026' || normalizedPath === '/deck-gmm2026' || normalizedPath === '/2-3' || normalizedPath === '/v-deck' || normalizedPath === '/v' || normalizedPath.includes('techxsummit2026');
+  const hideGlobalUI = 
+    normalizedPath === '/gmm2026' || 
+    normalizedPath === '/deck-gmm2026' || 
+    normalizedPath === '/2-3' || 
+    normalizedPath === '/v-deck' || 
+    normalizedPath === '/v' || 
+    normalizedPath.includes('techxsummit2026') ||
+    normalizedPath.includes('teckxq') ||
+    normalizedPath.includes('techxq') ||
+    normalizedPath.includes('q&a') ||
+    normalizedPath.includes('qa');
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -1119,6 +1132,35 @@ function App() {
           <Route path="/join-membership" element={<PageTransition><JoinMembership /></PageTransition>} />
           <Route path="/GMM@TechXSummit2026" element={<PageTransition><GMMTechXSummit2026 /></PageTransition>} />
           <Route path="/gmm@techxsummit2026" element={<PageTransition><GMMTechXSummit2026 /></PageTransition>} />
+          
+          {/* TechX Interactive Q&A System */}
+          {/* 1. Participant Page (/techxq&a) */}
+          <Route path="/techxq&a" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
+          <Route path="/techxq%26a" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
+          <Route path="/techxqa" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
+          <Route path="/techx-qa" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
+          <Route path="/teckxq&a" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
+          <Route path="/teckxq%26a" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
+          <Route path="/teckxqa" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
+
+          {/* 2. Host Moderation Page (/techxq&ahost) */}
+          <Route path="/techxq&ahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
+          <Route path="/techxq%26ahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
+          <Route path="/techxqahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
+          <Route path="/techx-qa-host" element={<PageTransition><TechXHostQA /></PageTransition>} />
+          <Route path="/teckxq&ahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
+          <Route path="/teckxq%26ahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
+          <Route path="/teckxqahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
+
+          {/* 3. Live Stage Display Page (/techxliveq&a) */}
+          <Route path="/techxliveq&a" element={<PageTransition><TechXLiveQA /></PageTransition>} />
+          <Route path="/techxlive%26a" element={<PageTransition><TechXLiveQA /></PageTransition>} />
+          <Route path="/techxliveq%26a" element={<PageTransition><TechXLiveQA /></PageTransition>} />
+          <Route path="/techxliveqa" element={<PageTransition><TechXLiveQA /></PageTransition>} />
+          <Route path="/techx-live-qa" element={<PageTransition><TechXLiveQA /></PageTransition>} />
+          <Route path="/teckxliveq&a" element={<PageTransition><TechXLiveQA /></PageTransition>} />
+          <Route path="/teckxliveq%26a" element={<PageTransition><TechXLiveQA /></PageTransition>} />
+          <Route path="/teckxliveqa" element={<PageTransition><TechXLiveQA /></PageTransition>} />
         </Routes>
       </AnimatePresence>
 

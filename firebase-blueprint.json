@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "techxQuestion": {
+      "title": "TechX Question",
+      "description": "Questions submitted by participants for TechX Summit 2026",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "company": { "type": "string" },
+        "question": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "isSelected": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["pending", "live", "answered"] },
+        "upvotes": { "type": "number" }
+      },
+      "required": ["name", "question", "createdAt", "status"]
+    },
+    "techxRegistration": {
+      "title": "TechX Registration",
+      "description": "Attendee registration records for TechX Summit 2026",
+      "type": "object",
+      "properties": {
+        "registrationId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "companyName": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "email": { "type": "string" },
+        "mobile": { "type": "string" },
+        "hasCompanion": { "type": "string" },
+        "companionName": { "type": "string" },
+        "companionDesignation": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["fullName", "email", "mobile", "registrationId"]
+    }
+  },
+  "firestore": {
+    "/techx_questions/{questionId}": {
+      "schema": "techxQuestion",
+      "description": "Real-time interactive Q&A collection for TechX Summit 2026"
+    },
+    "/techx_registrations/{registrationId}": {
+      "schema": "techxRegistration",
+      "description": "Event attendee registrations for TechX Summit 2026"
+    }
+  }
+}

@@ -28,9 +28,11 @@ import {
   Layers,
   Lightbulb,
   Award,
-  Users
+  Users,
+  MessageSquarePlus
 } from 'lucide-react';
 import { memberCompanies } from '../data/membersData';
+import { submitRegistrationToFirestore } from '../lib/firebaseQa';
 
 interface FormData {
   fullName: string;
@@ -220,6 +222,13 @@ export const GMMTechXSummit2026: React.FC = () => {
             },
             body: formParams
           }).catch(e => console.warn('Direct Google Sheets send:', e));
+        }
+
+        // 3. Save to Firebase Firestore (itap-db)
+        try {
+          await submitRegistrationToFirestore(payload);
+        } catch (fbErr) {
+          console.warn('Firestore registration error:', fbErr);
         }
       } catch (error) {
         console.warn('RSVP stored in client state (network fallback):', error);
@@ -935,6 +944,14 @@ export const GMMTechXSummit2026: React.FC = () => {
 
                       {/* Action Buttons */}
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                        <Link
+                          to="/techxq&a"
+                          className="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-[#05BFE0] to-[#4F17A8] hover:from-[#05BFE0]/90 hover:to-[#4F17A8]/90 text-xs font-bold text-white flex items-center justify-center gap-2 transition-all shadow-md"
+                        >
+                          <MessageSquarePlus className="w-4 h-4 text-white" />
+                          <span>Interactive Live Q&A</span>
+                        </Link>
+
                         <a
                           href={generateGoogleCalendarUrl()}
                           target="_blank"
