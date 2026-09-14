@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>ITAP | Redirecting...</title>
+    <script>
+      // Single Page Apps for GitHub Pages & static hosts
+      // Redirects 404 paths to index.html with the path intact
+      (function() {
+        var path = window.location.pathname;
+        var search = window.location.search;
+        var hash = window.location.hash;
+        // Keep the route and navigate to root index
+        sessionStorage.setItem('spa_redirect', path + search + hash);
+        window.location.replace('/' + (search ? search : '') + (hash ? hash : ''));
+      })();
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
