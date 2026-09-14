@@ -25,10 +25,10 @@ export const TechXLiveQA: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    // Generate full URL pointing to participant page
+    // Generate full URL pointing to participant page with clean, web-safe slug
     if (typeof window !== 'undefined') {
       const origin = window.location.origin;
-      setParticipantUrl(`${origin}/techxq&a`);
+      setParticipantUrl(`${origin}/techx-qa`);
     }
 
     // Subscribe to active question updates in real time
@@ -162,7 +162,7 @@ export const TechXLiveQA: React.FC = () => {
                 <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 opacity-30 blur-xl group-hover:opacity-60 transition duration-1000 group-hover:duration-200" />
                 <div className="relative bg-white p-4 sm:p-6 rounded-2xl shadow-inner flex flex-col items-center">
                   <QRCodeCanvas 
-                    value={participantUrl || (typeof window !== 'undefined' ? window.location.href.replace('techxliveq&a', 'techxq&a') : '')}
+                    value={participantUrl || (typeof window !== 'undefined' ? `${window.location.origin}/techx-qa` : '')}
                     size={260}
                     darkColor="#070B1E"
                     lightColor="#FFFFFF"
@@ -179,7 +179,7 @@ export const TechXLiveQA: React.FC = () => {
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/80 border border-slate-800 text-xs sm:text-sm font-mono text-slate-300">
                 <span className="text-cyan-400 font-semibold">Direct link:</span>
                 <span className="text-white underline underline-offset-4 decoration-cyan-500">
-                  {participantUrl ? participantUrl.replace(/^https?:\/\//, '') : 'itaphil.com/techxq&a'}
+                  {participantUrl ? participantUrl.replace(/^https?:\/\//, '') : 'itaphil.com/techx-qa'}
                 </span>
               </div>
             </motion.div>
@@ -243,7 +243,7 @@ export const TechXLiveQA: React.FC = () => {
                   <div className="flex items-center gap-3 bg-slate-950/80 border border-slate-800/80 rounded-2xl p-2.5 sm:px-3 sm:py-2 self-start sm:self-center">
                     <div className="bg-white p-1 rounded-lg">
                       <QRCodeCanvas 
-                        value={participantUrl || (typeof window !== 'undefined' ? window.location.href.replace('techxliveq&a', 'techxq&a') : '')}
+                        value={participantUrl || (typeof window !== 'undefined' ? `${window.location.origin}/techx-qa` : '')}
                         size={64}
                         darkColor="#070B1E"
                         lightColor="#FFFFFF"

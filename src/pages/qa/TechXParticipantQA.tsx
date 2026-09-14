@@ -286,14 +286,14 @@ export const TechXParticipantQA: React.FC = () => {
         {/* Organizer Shortcuts */}
         <div className="mt-8 pt-6 border-t border-slate-900 flex items-center justify-between text-xs text-slate-500">
           <Link 
-            to="/techxliveq&a" 
+            to="/techx-live-qa" 
             className="hover:text-cyan-400 transition-colors flex items-center gap-1 font-mono"
           >
             <span>Live Stage Screen</span>
             <ExternalLink className="w-3 h-3" />
           </Link>
           <Link 
-            to="/techxq&ahost" 
+            to="/techx-qa-host" 
             className="hover:text-cyan-400 transition-colors flex items-center gap-1 font-mono"
           >
             <span>Host Moderator</span>

@@ -1,5 +1,92 @@
 {
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/techxq&ahost",
+      "destination": "/techx-qa-host",
+      "permanent": true
+    },
+    {
+      "source": "/techxq%26ahost",
+      "destination": "/techx-qa-host",
+      "permanent": true
+    },
+    {
+      "source": "/techxqahost",
+      "destination": "/techx-qa-host",
+      "permanent": true
+    },
+    {
+      "source": "/teckxq&ahost",
+      "destination": "/techx-qa-host",
+      "permanent": true
+    },
+    {
+      "source": "/techxliveq&a",
+      "destination": "/techx-live-qa",
+      "permanent": true
+    },
+    {
+      "source": "/techxlive%26a",
+      "destination": "/techx-live-qa",
+      "permanent": true
+    },
+    {
+      "source": "/techxliveq%26a",
+      "destination": "/techx-live-qa",
+      "permanent": true
+    },
+    {
+      "source": "/techxliveqa",
+      "destination": "/techx-live-qa",
+      "permanent": true
+    },
+    {
+      "source": "/teckxliveq&a",
+      "destination": "/techx-live-qa",
+      "permanent": true
+    },
+    {
+      "source": "/techxq&a",
+      "destination": "/techx-qa",
+      "permanent": true
+    },
+    {
+      "source": "/techxq%26a",
+      "destination": "/techx-qa",
+      "permanent": true
+    },
+    {
+      "source": "/techxqa",
+      "destination": "/techx-qa",
+      "permanent": true
+    },
+    {
+      "source": "/techxq",
+      "destination": "/techx-qa",
+      "permanent": true
+    },
+    {
+      "source": "/teckxq&a",
+      "destination": "/techx-qa",
+      "permanent": true
+    },
+    {
+      "source": "/teckxq%26a",
+      "destination": "/techx-qa",
+      "permanent": true
+    },
+    {
+      "source": "/teckxqa",
+      "destination": "/techx-qa",
+      "permanent": true
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

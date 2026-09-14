@@ -244,7 +244,7 @@ export const TechXHostQA: React.FC = () => {
             </button>
 
             <Link
-              to="/techxliveq&a"
+              to="/techx-live-qa"
               target="_blank"
               rel="noopener noreferrer"
               className="px-3.5 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/25 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
@@ -255,7 +255,7 @@ export const TechXHostQA: React.FC = () => {
             </Link>
 
             <Link
-              to="/techxq&a"
+              to="/techx-qa"
               target="_blank"
               rel="noopener noreferrer"
               className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-all"

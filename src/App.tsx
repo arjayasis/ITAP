@@ -1134,30 +1134,30 @@ function App() {
           <Route path="/gmm@techxsummit2026" element={<PageTransition><GMMTechXSummit2026 /></PageTransition>} />
           
           {/* TechX Interactive Q&A System */}
-          {/* 1. Participant Page (/techxq&a) */}
+          {/* 1. Participant Page (Primary: /techx-qa, with legacy aliases) */}
+          <Route path="/techx-qa" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
+          <Route path="/techxqa" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
           <Route path="/techxq&a" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
           <Route path="/techxq%26a" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
-          <Route path="/techxqa" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
-          <Route path="/techx-qa" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
           <Route path="/teckxq&a" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
           <Route path="/teckxq%26a" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
           <Route path="/teckxqa" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
 
-          {/* 2. Host Moderation Page (/techxq&ahost) */}
+          {/* 2. Host Moderation Page (Primary: /techx-qa-host, with legacy aliases) */}
+          <Route path="/techx-qa-host" element={<PageTransition><TechXHostQA /></PageTransition>} />
+          <Route path="/techxqahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
           <Route path="/techxq&ahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
           <Route path="/techxq%26ahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
-          <Route path="/techxqahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
-          <Route path="/techx-qa-host" element={<PageTransition><TechXHostQA /></PageTransition>} />
           <Route path="/teckxq&ahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
           <Route path="/teckxq%26ahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
           <Route path="/teckxqahost" element={<PageTransition><TechXHostQA /></PageTransition>} />
 
-          {/* 3. Live Stage Display Page (/techxliveq&a) */}
+          {/* 3. Live Stage Display Page (Primary: /techx-live-qa, with legacy aliases) */}
+          <Route path="/techx-live-qa" element={<PageTransition><TechXLiveQA /></PageTransition>} />
+          <Route path="/techxliveqa" element={<PageTransition><TechXLiveQA /></PageTransition>} />
           <Route path="/techxliveq&a" element={<PageTransition><TechXLiveQA /></PageTransition>} />
           <Route path="/techxlive%26a" element={<PageTransition><TechXLiveQA /></PageTransition>} />
           <Route path="/techxliveq%26a" element={<PageTransition><TechXLiveQA /></PageTransition>} />
-          <Route path="/techxliveqa" element={<PageTransition><TechXLiveQA /></PageTransition>} />
-          <Route path="/techx-live-qa" element={<PageTransition><TechXLiveQA /></PageTransition>} />
           <Route path="/teckxliveq&a" element={<PageTransition><TechXLiveQA /></PageTransition>} />
           <Route path="/teckxliveq%26a" element={<PageTransition><TechXLiveQA /></PageTransition>} />
           <Route path="/teckxliveqa" element={<PageTransition><TechXLiveQA /></PageTransition>} />
