@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Radio, 
@@ -20,7 +20,9 @@ import {
   Database,
   Check,
   RefreshCw,
-  Plus
+  Plus,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { 
   subscribeQuestions, 
@@ -53,6 +55,35 @@ export const TechXHostQA: React.FC = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [firebaseConfigInput, setFirebaseConfigInput] = useState<FirebaseQAConfig>(getActiveFirebaseConfig());
   const [configSavedToast, setConfigSavedToast] = useState(false);
+
+  // Fullscreen state for question feed
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const questionListRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (questionListRef.current) {
+        questionListRef.current.requestFullscreen().catch((err) => {
+          console.warn('Fullscreen error:', err);
+          document.documentElement.requestFullscreen().catch(() => {});
+        });
+      } else {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
 
   // Live connection test state
   const [testResult, setTestResult] = useState<FirebaseConnectionTestResult | null>(null);
@@ -377,7 +408,7 @@ export const TechXHostQA: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Filter and Search Bar */}
+        {/* Filter, Search, and Fullscreen Bar */}
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between mb-6">
           <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 p-1 rounded-xl">
             {(['all', 'pending', 'live', 'answered'] as const).map((tab) => (
@@ -395,126 +426,181 @@ export const TechXHostQA: React.FC = () => {
             ))}
           </div>
 
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search attendee or question..."
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
-            />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-72">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search attendee or question..."
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              />
+            </div>
+
+            <button
+              onClick={toggleFullscreen}
+              title={isFullscreen ? 'Exit Full Screen' : 'Full Screen Question List'}
+              className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 ${
+                isFullscreen
+                  ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-bold shadow-lg shadow-cyan-500/20'
+                  : 'bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white'
+              }`}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Exit Fullscreen</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="hidden sm:inline">Full Screen</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Questions Feed */}
-        {filteredQuestions.length === 0 ? (
-          <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-12 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center mx-auto mb-4 text-slate-400">
-              <Radio className="w-6 h-6" />
+        {/* Questions Feed Container with Fullscreen Ref */}
+        <div
+          ref={questionListRef}
+          className={isFullscreen ? 'fixed inset-0 z-50 bg-[#070B1E] p-4 sm:p-8 overflow-y-auto' : ''}
+        >
+          {isFullscreen && (
+            <div className="max-w-7xl mx-auto flex items-center justify-between pb-4 mb-6 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <img 
+                  src="https://marketing.timcorp.net.ph/hubfs/ITAP/techx%20for%20dark.png" 
+                  alt="TechX Summit" 
+                  className="h-7 w-auto object-contain"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="h-4 w-px bg-slate-800" />
+                <span className="font-bold text-white text-sm tracking-wide">
+                  Live Questions Feed ({filteredQuestions.length})
+                </span>
+              </div>
+              <button
+                onClick={toggleFullscreen}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-700"
+              >
+                <Minimize2 className="w-3.5 h-3.5" />
+                <span>Exit Fullscreen</span>
+              </button>
             </div>
-            <h3 className="text-base font-semibold text-white mb-1">No Questions Found</h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
-              {searchQuery ? 'No submitted questions matched your search query.' : 'Waiting for audience submissions to arrive in real time.'}
-            </p>
-            <button
-              onClick={handleSeed}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-colors"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Load 3 Demo Questions</span>
-            </button>
-          </div>
-        ) : (
-          <div className="grid gap-3.5 sm:gap-4">
-            {filteredQuestions.map((q) => {
-              const isCurrentlyLive = q.isSelected && q.status === 'live';
+          )}
 
-              return (
-                <div
-                  key={q.id}
-                  className={`rounded-2xl p-5 border transition-all relative ${
-                    isCurrentlyLive
-                      ? 'bg-cyan-950/30 border-cyan-500/50 shadow-lg shadow-cyan-500/10'
-                      : q.status === 'answered'
-                      ? 'bg-slate-900/40 border-slate-800/50 opacity-70'
-                      : 'bg-slate-900/80 border-slate-800 hover:border-slate-700/90'
-                  }`}
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    <div className="flex-1">
-                      {/* Top Meta info */}
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        {isCurrentlyLive && (
-                          <span className="px-2 py-0.5 rounded bg-cyan-400 text-slate-950 text-[10px] font-extrabold uppercase font-mono tracking-wider">
-                            ACTIVE ON STAGE
-                          </span>
-                        )}
-                        {q.status === 'answered' && (
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono">
-                            ANSWERED
-                          </span>
-                        )}
-                        <span className="font-semibold text-sm text-white">{q.name}</span>
-                        {q.company && (
-                          <span className="text-xs text-slate-400">• {q.company}</span>
-                        )}
-                        <span className="text-[11px] font-mono text-slate-400 ml-auto sm:ml-0 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {q.timestamp}
-                        </span>
-                      </div>
-
-                      {/* Question Text */}
-                      <p className="text-sm sm:text-base text-slate-200 leading-relaxed font-normal">
-                        "{q.question}"
-                      </p>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-start">
-                      {!isCurrentlyLive ? (
-                        <button
-                          onClick={() => setPendingLiveQuestion(q)}
-                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-cyan-500/10"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-current" />
-                          <span>Display Live</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={handleClearLive}
-                          className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-colors"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                          <span>Take Down</span>
-                        </button>
-                      )}
-
-                      {q.status !== 'answered' && (
-                        <button
-                          onClick={(e) => handleMarkAnswered(q.id, e)}
-                          title="Mark as answered"
-                          className="p-2 rounded-xl bg-slate-800/80 hover:bg-emerald-500/20 hover:text-emerald-300 text-slate-400 transition-colors border border-slate-800"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                      )}
-
-                      <button
-                        onClick={(e) => handleDelete(q.id, e)}
-                        title="Delete question"
-                        className="p-2 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 hover:text-rose-300 text-slate-400 transition-colors border border-slate-800"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
+          <div className={isFullscreen ? 'max-w-7xl mx-auto' : ''}>
+            {filteredQuestions.length === 0 ? (
+              <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-12 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center mx-auto mb-4 text-slate-400">
+                  <Radio className="w-6 h-6" />
                 </div>
-              );
-            })}
+                <h3 className="text-base font-semibold text-white mb-1">No Questions Found</h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
+                  {searchQuery ? 'No submitted questions matched your search query.' : 'Waiting for audience submissions to arrive in real time.'}
+                </p>
+                <button
+                  onClick={handleSeed}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Load 3 Demo Questions</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-3.5 sm:gap-4">
+                {filteredQuestions.map((q) => {
+                  const isCurrentlyLive = q.isSelected && q.status === 'live';
+
+                  return (
+                    <div
+                      key={q.id}
+                      className={`rounded-2xl p-5 border transition-all relative ${
+                        isCurrentlyLive
+                          ? 'bg-cyan-950/30 border-cyan-500/50 shadow-lg shadow-cyan-500/10'
+                          : q.status === 'answered'
+                          ? 'bg-slate-900/40 border-slate-800/50 opacity-70'
+                          : 'bg-slate-900/80 border-slate-800 hover:border-slate-700/90'
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="flex-1">
+                          {/* Top Meta info */}
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            {isCurrentlyLive && (
+                              <span className="px-2 py-0.5 rounded bg-cyan-400 text-slate-950 text-[10px] font-extrabold uppercase font-mono tracking-wider">
+                                ACTIVE ON STAGE
+                              </span>
+                            )}
+                            {q.status === 'answered' && (
+                              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono">
+                                ANSWERED
+                              </span>
+                            )}
+                            <span className="font-semibold text-sm text-white">{q.name}</span>
+                            {q.company && (
+                              <span className="text-xs text-slate-400">• {q.company}</span>
+                            )}
+                            <span className="text-[11px] font-mono text-slate-400 ml-auto sm:ml-0 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {q.timestamp}
+                            </span>
+                          </div>
+
+                          {/* Question Text */}
+                          <p className={`text-slate-200 leading-relaxed font-normal ${isFullscreen ? 'text-lg font-medium' : 'text-sm sm:text-base'}`}>
+                            "{q.question}"
+                          </p>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-start">
+                          {!isCurrentlyLive ? (
+                            <button
+                              onClick={() => setPendingLiveQuestion(q)}
+                              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-cyan-500/10"
+                            >
+                              <Play className="w-3.5 h-3.5 fill-current" />
+                              <span>Display Live</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={handleClearLive}
+                              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-colors"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              <span>Take Down</span>
+                            </button>
+                          )}
+
+                          {q.status !== 'answered' && (
+                            <button
+                              onClick={(e) => handleMarkAnswered(q.id, e)}
+                              title="Mark as answered"
+                              className="p-2 rounded-xl bg-slate-800/80 hover:bg-emerald-500/20 hover:text-emerald-300 text-slate-400 transition-colors border border-slate-800"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          <button
+                            onClick={(e) => handleDelete(q.id, e)}
+                            title="Delete question"
+                            className="p-2 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 hover:text-rose-300 text-slate-400 transition-colors border border-slate-800"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </main>
 
       {/* Confirmation Modal for Display Live */}

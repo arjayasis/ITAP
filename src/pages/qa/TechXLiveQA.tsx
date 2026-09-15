@@ -272,15 +272,6 @@ export const TechXLiveQA: React.FC = () => {
           <span>•</span>
           <span>Technological Institute of the Philippines (T.I.P.) QC</span>
         </div>
-
-        <div className="flex items-center gap-2" title="Firestore Database ID: ai-studio-itap-e7777b86-5024-412f-845c-394e9eefe676">
-          <span className={`w-1.5 h-1.5 rounded-full ${
-            connStatus === 'connected' ? 'bg-cyan-400 animate-ping' : connStatus === 'error' ? 'bg-red-400' : 'bg-amber-400 animate-ping'
-          }`} />
-          <span>
-            {connStatus === 'connected' ? 'itap-db Cloud Sync Active' : connStatus === 'error' ? 'Cloud Reconnecting...' : 'Connecting itap-db...'}
-          </span>
-        </div>
       </footer>
     </div>
   );

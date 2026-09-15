@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Send, 
@@ -6,38 +6,26 @@ import {
   Sparkles, 
   MessageSquarePlus, 
   User, 
-  Building2, 
   HelpCircle,
   Radio,
-  ExternalLink,
-  ChevronRight,
-  ShieldCheck,
-  Zap
+  UserCheck
 } from 'lucide-react';
-import { submitQuestion, subscribeConnectionStatus, ConnectionStatus } from '../../lib/firebaseQa';
-import { Link } from 'react-router-dom';
+import { submitQuestion } from '../../lib/firebaseQa';
 
 export const TechXParticipantQA: React.FC = () => {
   const [name, setName] = useState('');
-  const [company, setCompany] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [question, setQuestion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedData, setSubmittedData] = useState<{ name: string; question: string; timestamp: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [connStatus, setConnStatus] = useState<ConnectionStatus>('connecting');
-
-  useEffect(() => {
-    const unsub = subscribeConnectionStatus((status) => {
-      setConnStatus(status);
-    });
-    return () => unsub();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setErrorMsg('Please enter your full name');
+    const effectiveName = isAnonymous ? 'Anonymous' : name.trim();
+    if (!isAnonymous && !effectiveName) {
+      setErrorMsg('Please enter your full name or select Submit as Anonymous');
       return;
     }
     if (!question.trim()) {
@@ -53,7 +41,7 @@ export const TechXParticipantQA: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const result = await submitQuestion(name, question, company);
+      const result = await submitQuestion(effectiveName, question, '');
       setSubmittedData({
         name: result.name,
         question: result.question,
@@ -93,20 +81,6 @@ export const TechXParticipantQA: React.FC = () => {
             <div className="h-5 w-px bg-slate-800 hidden sm:block" />
             <span className="text-xs font-mono text-cyan-400 font-semibold tracking-wider uppercase hidden sm:inline-block">
               Interactive Q&A
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                connStatus === 'connected' ? 'bg-emerald-400' : connStatus === 'error' ? 'bg-red-400' : 'bg-cyan-400'
-              }`}></span>
-              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                connStatus === 'connected' ? 'bg-emerald-500' : connStatus === 'error' ? 'bg-red-500' : 'bg-cyan-500'
-              }`}></span>
-            </span>
-            <span className="text-xs font-mono text-slate-300">
-              {connStatus === 'connected' ? 'ITAP-db Cloud Sync' : connStatus === 'error' ? 'Reconnecting Cloud...' : 'Connecting...'}
             </span>
           </div>
         </div>
@@ -152,37 +126,54 @@ export const TechXParticipantQA: React.FC = () => {
                   </div>
                 )}
 
-                {/* Participant Name */}
-                <div className="mb-4">
-                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
-                    Your Full Name <span className="text-cyan-400">*</span>
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Juan Dela Cruz"
-                      required
-                      className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                    />
+                {/* Participant Name & Anonymous Option */}
+                <div className="mb-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider">
+                      Your Name {!isAnonymous && <span className="text-cyan-400">*</span>}
+                    </label>
+                    <label className="inline-flex items-center gap-2 cursor-pointer select-none group">
+                      <input
+                        type="checkbox"
+                        checked={isAnonymous}
+                        onChange={(e) => {
+                          setIsAnonymous(e.target.checked);
+                          if (e.target.checked) {
+                            setErrorMsg('');
+                          }
+                        }}
+                        className="sr-only"
+                      />
+                      <span className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
+                        isAnonymous 
+                          ? 'bg-cyan-500 border-cyan-400 text-slate-950' 
+                          : 'bg-slate-950 border-slate-700 group-hover:border-slate-500'
+                      }`}>
+                        {isAnonymous && <UserCheck className="w-3 h-3 stroke-[3]" />}
+                      </span>
+                      <span className={`text-xs font-mono transition-colors ${
+                        isAnonymous ? 'text-cyan-300 font-semibold' : 'text-slate-400 group-hover:text-slate-300'
+                      }`}>
+                        Post Anonymously
+                      </span>
+                    </label>
                   </div>
-                </div>
-
-                {/* Company / Designation (Optional) */}
-                <div className="mb-4">
-                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
-                    Company / Organization <span className="text-slate-500">(Optional)</span>
-                  </label>
                   <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <User className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${
+                      isAnonymous ? 'text-slate-600' : 'text-slate-400'
+                    }`} />
                     <input
                       type="text"
-                      value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      placeholder="e.g. ITAP Member / TIM Corp"
-                      className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                      value={isAnonymous ? 'Anonymous' : name}
+                      disabled={isAnonymous}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder={isAnonymous ? 'Anonymous Attendee' : 'e.g. Juan Dela Cruz'}
+                      required={!isAnonymous}
+                      className={`w-full bg-slate-950/80 border rounded-xl pl-10 pr-4 py-3 text-sm placeholder-slate-500 transition-all ${
+                        isAnonymous 
+                          ? 'border-slate-800/60 text-slate-400 cursor-not-allowed bg-slate-950/40 italic' 
+                          : 'border-slate-800 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500'
+                      }`}
                     />
                   </div>
                 </div>
@@ -218,7 +209,7 @@ export const TechXParticipantQA: React.FC = () => {
                 {/* Submit Action */}
                 <button
                   type="submit"
-                  disabled={isSubmitting || !name.trim() || !question.trim()}
+                  disabled={isSubmitting || (!isAnonymous && !name.trim()) || !question.trim()}
                   className="w-full relative group overflow-hidden rounded-xl p-px font-semibold text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/25"
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 transition-all duration-300 group-hover:scale-105" />
@@ -282,30 +273,13 @@ export const TechXParticipantQA: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Organizer Shortcuts */}
-        <div className="mt-8 pt-6 border-t border-slate-900 flex items-center justify-between text-xs text-slate-500">
-          <Link 
-            to="/techx-live-qa" 
-            className="hover:text-cyan-400 transition-colors flex items-center gap-1 font-mono"
-          >
-            <span>Live Stage Screen</span>
-            <ExternalLink className="w-3 h-3" />
-          </Link>
-          <Link 
-            to="/techx-qa-host" 
-            className="hover:text-cyan-400 transition-colors flex items-center gap-1 font-mono"
-          >
-            <span>Host Moderator</span>
-            <ChevronRight className="w-3 h-3" />
-          </Link>
-        </div>
       </main>
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-slate-900/80 px-4 py-4 text-center text-xs text-slate-500 font-mono">
-        <p>© 2026 ITAP TechX Summit • Real-Time Interactive Q&A Engine</p>
+        <p>© 2026 ITAP TechX Summit</p>
       </footer>
     </div>
   );
 };
+
