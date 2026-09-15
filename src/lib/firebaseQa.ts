@@ -307,7 +307,8 @@ export function subscribeActiveQuestion(callback: (question: QAQuestion | null) 
 export async function submitQuestion(
   name: string, 
   questionText: string, 
-  company: string = ''
+  company: string = '',
+  isAnonymous: boolean = false
 ): Promise<QAQuestion> {
   const id = 'qa_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
   const now = new Date();
@@ -318,9 +319,14 @@ export async function submitQuestion(
     timeZone: 'Asia/Manila' 
   });
 
+  const originalName = name.trim();
+  const displayName = isAnonymous ? 'Anonymous' : originalName;
+
   const newQuestion: QAQuestion = {
     id,
-    name: name.trim(),
+    name: displayName,
+    submitterName: originalName,
+    isAnonymous: Boolean(isAnonymous),
     company: company.trim() || '', // Never undefined
     question: questionText.trim(),
     timestamp: timeFormatted,
@@ -341,6 +347,8 @@ export async function submitQuestion(
       const docPayload = {
         id: newQuestion.id,
         name: newQuestion.name,
+        submitterName: newQuestion.submitterName || '',
+        isAnonymous: newQuestion.isAnonymous || false,
         company: newQuestion.company || '',
         question: newQuestion.question,
         timestamp: newQuestion.timestamp,

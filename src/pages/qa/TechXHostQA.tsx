@@ -134,9 +134,10 @@ export const TechXHostQA: React.FC = () => {
     if (searchQuery.trim()) {
       const qText = q.question.toLowerCase();
       const nText = q.name.toLowerCase();
+      const sText = (q.submitterName || '').toLowerCase();
       const cText = (q.company || '').toLowerCase();
       const s = searchQuery.toLowerCase();
-      return qText.includes(s) || nText.includes(s) || cText.includes(s);
+      return qText.includes(s) || nText.includes(s) || sText.includes(s) || cText.includes(s);
     }
     return true;
   });
@@ -539,7 +540,16 @@ export const TechXHostQA: React.FC = () => {
                                 ANSWERED
                               </span>
                             )}
-                            <span className="font-semibold text-sm text-white">{q.name}</span>
+                            <span className="font-semibold text-sm text-white">
+                              {q.isAnonymous ? 'Anonymous' : q.name}
+                            </span>
+
+                            {q.isAnonymous && q.submitterName && q.submitterName !== 'Anonymous' && (
+                              <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono" title="True participant full name (Host only)">
+                                Name: <span className="text-cyan-300 font-semibold">{q.submitterName}</span>
+                              </span>
+                            )}
+
                             {q.company && (
                               <span className="text-xs text-slate-400">• {q.company}</span>
                             )}

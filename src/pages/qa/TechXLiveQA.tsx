@@ -129,58 +129,88 @@ export const TechXLiveQA: React.FC = () => {
       </header>
 
       {/* Main Stage Display Area */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 sm:px-12 md:px-20 py-8 max-w-7xl mx-auto w-full">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 sm:px-10 lg:px-16 py-6 sm:py-8 max-w-7xl mx-auto w-full">
         <AnimatePresence mode="wait">
           {!activeQuestion ? (
             /* ========================================================= */
-            /* DEFAULT STATE: No Question Selected (Prominent QR Code)   */
+            /* DEFAULT STATE: No Question Selected (Enlarged QR Code)    */
+            /* Landscape: 2 columns, large QR placed on right side       */
             /* ========================================================= */
             <motion.div
               key="default-qr-state"
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="text-center flex flex-col items-center max-w-3xl w-full"
+              className="w-full"
             >
-              {/* Event Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-cyan-950/80 to-blue-950/80 border border-cyan-500/30 text-cyan-300 text-xs sm:text-sm font-mono mb-6 shadow-lg shadow-cyan-500/10">
-                <Radio className="w-4 h-4 text-cyan-400 animate-pulse" />
-                <span>Open Floor For Audience Questions</span>
-              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                {/* Left Column: Event info & Call to action */}
+                <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left">
+                  {/* Event Badge */}
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-cyan-950/90 to-blue-950/90 border border-cyan-500/30 text-cyan-300 text-xs sm:text-sm font-mono mb-4 sm:mb-6 shadow-lg shadow-cyan-500/10">
+                    <Radio className="w-4 h-4 text-cyan-400 animate-pulse" />
+                    <span>Open Floor For Audience Questions</span>
+                  </div>
 
-              {/* Main Headline */}
-              <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-4 leading-tight">
-                Scan to Ask a Question
-              </h1>
-              <p className="text-base sm:text-xl text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed font-normal">
-                Point your phone camera at the QR code to submit questions directly to keynote speakers and panelists.
-              </p>
+                  {/* Main Headline */}
+                  <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-4 sm:mb-5 leading-[1.15]">
+                    Scan to Ask a Question
+                  </h1>
+                  <p className="text-base sm:text-xl text-slate-300 max-w-xl mb-6 sm:mb-8 leading-relaxed font-normal">
+                    Point your phone camera at the QR code to submit questions directly to keynote speakers and panelists in real time.
+                  </p>
 
-              {/* High-Resolution Dynamic Scannable QR Code */}
-              <div className="relative group p-4 sm:p-5 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-2xl shadow-cyan-500/15 mb-8">
-                <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 opacity-30 blur-xl group-hover:opacity-60 transition duration-1000 group-hover:duration-200" />
-                <div className="relative bg-white p-4 sm:p-6 rounded-2xl shadow-inner flex flex-col items-center">
-                  <QRCodeCanvas 
-                    value={participantUrl || (typeof window !== 'undefined' ? `${window.location.origin}/techx-qa` : '')}
-                    size={260}
-                    darkColor="#070B1E"
-                    lightColor="#FFFFFF"
-                  />
-                  <div className="mt-3 text-center">
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-slate-800 font-bold">
-                      TechX Interactive Q&A
+                  {/* Instructions Highlights */}
+                  <div className="hidden sm:grid grid-cols-2 gap-3.5 mb-8 w-full max-w-lg">
+                    <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+                      <p className="text-cyan-400 text-xs font-mono font-bold uppercase mb-1">01. Open Camera</p>
+                      <p className="text-xs text-slate-400">Scan QR from your seat with any smartphone</p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+                      <p className="text-cyan-400 text-xs font-mono font-bold uppercase mb-1">02. Type Question</p>
+                      <p className="text-xs text-slate-400">Moderator reviews and projects selected questions live</p>
+                    </div>
+                  </div>
+
+                  {/* Direct Web Address for Laptop / Browser Users */}
+                  <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs sm:text-sm font-mono text-slate-300 shadow-md">
+                    <span className="text-cyan-400 font-semibold">Direct link:</span>
+                    <span className="text-white underline underline-offset-4 decoration-cyan-500 font-semibold">
+                      {participantUrl ? participantUrl.replace(/^https?:\/\//, '') : 'itaphil.com/techx-qa'}
                     </span>
                   </div>
                 </div>
-              </div>
 
-              {/* Direct Web Address for Laptop Users */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/80 border border-slate-800 text-xs sm:text-sm font-mono text-slate-300">
-                <span className="text-cyan-400 font-semibold">Direct link:</span>
-                <span className="text-white underline underline-offset-4 decoration-cyan-500">
-                  {participantUrl ? participantUrl.replace(/^https?:\/\//, '') : 'itaphil.com/techx-qa'}
-                </span>
+                {/* Right Column: Prominent Large High-Resolution Scannable QR Code */}
+                <div className="lg:col-span-5 flex flex-col items-center justify-center">
+                  <div className="relative group p-5 sm:p-7 rounded-[32px] bg-white/5 border border-white/15 backdrop-blur-2xl shadow-2xl shadow-cyan-500/20">
+                    <div className="absolute -inset-1.5 rounded-[34px] bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 opacity-40 blur-2xl group-hover:opacity-75 transition duration-1000" />
+                    
+                    <div className="relative bg-white p-5 sm:p-7 rounded-2xl shadow-2xl flex flex-col items-center">
+                      <QRCodeCanvas 
+                        value={participantUrl || (typeof window !== 'undefined' ? `${window.location.origin}/techx-qa` : '')}
+                        size={320}
+                        darkColor="#070B1E"
+                        lightColor="#FFFFFF"
+                        className="w-56 h-56 sm:w-80 sm:h-80"
+                      />
+                      
+                      <div className="mt-4 text-center">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200">
+                          <QrCode className="w-3.5 h-3.5 text-cyan-600" />
+                          <span className="text-xs font-mono uppercase tracking-wider font-bold">
+                            SCAN TO PARTICIPATE
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <span className="mt-3 text-xs font-mono text-slate-400 text-center">
+                    Instant Mobile Portal • No App Download Required
+                  </span>
+                </div>
               </div>
             </motion.div>
           ) : (

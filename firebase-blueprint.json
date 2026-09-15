@@ -7,6 +7,8 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
+        "submitterName": { "type": "string" },
+        "isAnonymous": { "type": "boolean" },
         "company": { "type": "string" },
         "question": { "type": "string" },
         "timestamp": { "type": "string" },

@@ -1,6 +1,8 @@
 export interface QAQuestion {
   id: string;
   name: string;
+  submitterName?: string;
+  isAnonymous?: boolean;
   company?: string;
   question: string;
   timestamp: string;

@@ -18,14 +18,20 @@ export const TechXParticipantQA: React.FC = () => {
   const [question, setQuestion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [submittedData, setSubmittedData] = useState<{ name: string; question: string; timestamp: string } | null>(null);
+  const [submittedData, setSubmittedData] = useState<{ 
+    displayName: string;
+    fullName: string;
+    isAnonymous: boolean;
+    question: string; 
+    timestamp: string;
+  } | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const effectiveName = isAnonymous ? 'Anonymous' : name.trim();
-    if (!isAnonymous && !effectiveName) {
-      setErrorMsg('Please enter your full name or select Submit as Anonymous');
+    const fullName = name.trim();
+    if (!fullName) {
+      setErrorMsg('Please enter your full name');
       return;
     }
     if (!question.trim()) {
@@ -41,9 +47,11 @@ export const TechXParticipantQA: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const result = await submitQuestion(effectiveName, question, '');
+      const result = await submitQuestion(fullName, question, '', isAnonymous);
       setSubmittedData({
-        name: result.name,
+        displayName: result.name,
+        fullName: result.submitterName || fullName,
+        isAnonymous: Boolean(result.isAnonymous),
         question: result.question,
         timestamp: result.timestamp
       });
@@ -130,7 +138,7 @@ export const TechXParticipantQA: React.FC = () => {
                 <div className="mb-5">
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider">
-                      Your Name {!isAnonymous && <span className="text-cyan-400">*</span>}
+                      Your Full Name <span className="text-cyan-400">*</span>
                     </label>
                     <label className="inline-flex items-center gap-2 cursor-pointer select-none group">
                       <input
@@ -138,9 +146,7 @@ export const TechXParticipantQA: React.FC = () => {
                         checked={isAnonymous}
                         onChange={(e) => {
                           setIsAnonymous(e.target.checked);
-                          if (e.target.checked) {
-                            setErrorMsg('');
-                          }
+                          setErrorMsg('');
                         }}
                         className="sr-only"
                       />
@@ -154,27 +160,32 @@ export const TechXParticipantQA: React.FC = () => {
                       <span className={`text-xs font-mono transition-colors ${
                         isAnonymous ? 'text-cyan-300 font-semibold' : 'text-slate-400 group-hover:text-slate-300'
                       }`}>
-                        Post Anonymously
+                        Display as Anonymous on Stage
                       </span>
                     </label>
                   </div>
                   <div className="relative">
-                    <User className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${
-                      isAnonymous ? 'text-slate-600' : 'text-slate-400'
-                    }`} />
+                    <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
-                      value={isAnonymous ? 'Anonymous' : name}
-                      disabled={isAnonymous}
+                      value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder={isAnonymous ? 'Anonymous Attendee' : 'e.g. Juan Dela Cruz'}
-                      required={!isAnonymous}
-                      className={`w-full bg-slate-950/80 border rounded-xl pl-10 pr-4 py-3 text-sm placeholder-slate-500 transition-all ${
-                        isAnonymous 
-                          ? 'border-slate-800/60 text-slate-400 cursor-not-allowed bg-slate-950/40 italic' 
-                          : 'border-slate-800 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500'
-                      }`}
+                      placeholder="e.g. Juan Dela Cruz"
+                      required
+                      className="w-full bg-slate-950/80 border border-slate-800 text-white rounded-xl pl-10 pr-4 py-3 text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
                     />
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-400">
+                    <span>
+                      {isAnonymous ? (
+                        <span className="text-cyan-400 font-medium flex items-center gap-1">
+                          <UserCheck className="w-3 h-3" />
+                          Stage Screen: Displays as <strong>"Anonymous"</strong> (Organizer records your name: {name.trim() || 'Pending'})
+                        </span>
+                      ) : (
+                        <span>Stage Screen: Displays your name publically on the live stage projector</span>
+                      )}
+                    </span>
                   </div>
                 </div>
 
@@ -246,7 +257,16 @@ export const TechXParticipantQA: React.FC = () => {
                 Question Submitted!
               </h2>
               <p className="text-sm text-slate-300 mb-6">
-                Thank you, <strong className="text-cyan-400">{submittedData?.name}</strong>. Your question has been delivered to the host moderation console.
+                Thank you, <strong className="text-cyan-400">{submittedData?.fullName}</strong>. 
+                {submittedData?.isAnonymous ? (
+                  <span className="block mt-1 text-xs text-slate-400">
+                    Your question will appear on the live stage as <strong className="text-amber-300">"Anonymous"</strong>.
+                  </span>
+                ) : (
+                  <span className="block mt-1 text-xs text-slate-400">
+                    Your question will display with your name on the live stage.
+                  </span>
+                )}
               </p>
 
               {/* Question Preview Box */}
