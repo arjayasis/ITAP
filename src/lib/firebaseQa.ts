@@ -394,6 +394,7 @@ export async function setDisplayLive(questionId: string): Promise<void> {
   const { db, isLive } = initFirebase();
 
   // Optimistic local update
+  const previousSelectedIds = memoryQuestions.filter((q) => q.isSelected && q.id !== questionId).map((q) => q.id);
   const updated = memoryQuestions.map((q) => {
     if (q.id === questionId) {
       return { ...q, isSelected: true, status: 'live' as const };
@@ -411,13 +412,11 @@ export async function setDisplayLive(questionId: string): Promise<void> {
       const batch = writeBatch(db);
       
       // Reset currently selected question(s)
-      memoryQuestions.forEach((q) => {
-        if (q.isSelected && q.id !== questionId) {
-          batch.update(doc(db, 'techx_questions', q.id), {
-            isSelected: false,
-            status: q.status === 'live' ? 'pending' : q.status
-          });
-        }
+      previousSelectedIds.forEach((id) => {
+        batch.update(doc(db, 'techx_questions', id), {
+          isSelected: false,
+          status: 'pending'
+        });
       });
 
       // Set target question to live
@@ -438,27 +437,28 @@ export async function setDisplayLive(questionId: string): Promise<void> {
 export async function clearDisplayLive(): Promise<void> {
   const { db, isLive } = initFirebase();
 
+  // Capture IDs of currently selected questions before updating local memory
+  const selectedIds = memoryQuestions.filter((q) => q.isSelected || q.status === 'live').map((q) => q.id);
+
   const updated = memoryQuestions.map((q) => {
-    if (q.isSelected) {
+    if (q.isSelected || q.status === 'live') {
       return { ...q, isSelected: false, status: 'pending' as const };
     }
     return q;
   });
   saveLocalQuestions(updated);
 
-  if (isLive && db) {
+  if (isLive && db && selectedIds.length > 0) {
     try {
       const batch = writeBatch(db);
-      memoryQuestions.forEach((q) => {
-        if (q.isSelected) {
-          batch.update(doc(db, 'techx_questions', q.id), {
-            isSelected: false,
-            status: 'pending'
-          });
-        }
+      selectedIds.forEach((id) => {
+        batch.update(doc(db, 'techx_questions', id), {
+          isSelected: false,
+          status: 'pending'
+        });
       });
       await batch.commit();
-      console.log('✅ Cleared Live display in Cloud Firestore');
+      console.log('✅ Cleared Live display in Cloud Firestore for', selectedIds.length, 'question(s)');
     } catch (err) {
       console.error('Firestore clearDisplayLive failed:', err);
     }
