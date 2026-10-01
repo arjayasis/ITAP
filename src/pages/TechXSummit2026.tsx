@@ -94,6 +94,7 @@ export const TechXSummit2026: React.FC = () => {
 
   // Registration Modal & State
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [customCollege, setCustomCollege] = useState('');
   const [regForm, setRegForm] = useState<StudentRegistrationForm>({
     firstName: '',
     lastName: '',
@@ -101,7 +102,7 @@ export const TechXSummit2026: React.FC = () => {
     mobile: '',
     email: '',
     college: 'College of Information Technology Education (CITE)',
-    program: 'BS Information Technology (BSIT)',
+    program: '',
     location: 'Quezon City',
     yearLevel: '4th Year',
     privacyConsent: false
@@ -212,6 +213,9 @@ export const TechXSummit2026: React.FC = () => {
     setIsSubmitting(true);
     const ticketId = `TIP-TX-${Math.floor(100000 + Math.random() * 900000)}`;
     const fullName = `${regForm.firstName.trim()} ${regForm.middleName ? regForm.middleName.trim() + ' ' : ''}${regForm.lastName.trim()}`;
+    const finalCollege = regForm.college === 'Others' 
+      ? (customCollege.trim() ? `Others (${customCollege.trim()})` : 'Others')
+      : regForm.college;
 
     const registrationPayload = {
       registrationId: ticketId,
@@ -220,12 +224,12 @@ export const TechXSummit2026: React.FC = () => {
       lastName: regForm.lastName.trim(),
       middleName: (regForm.middleName || '').trim(),
       fullName,
-      college: regForm.college,
+      college: finalCollege,
       program: regForm.program.trim(),
       location: regForm.location,
       yearLevel: regForm.yearLevel,
       // Compatibility fields
-      collegeOrDept: regForm.college,
+      collegeOrDept: finalCollege,
       course: regForm.program.trim(),
       campus: `T.I.P. ${regForm.location}`,
       email: regForm.email.trim().toLowerCase(),
@@ -1219,7 +1223,13 @@ export const TechXSummit2026: React.FC = () => {
                       </label>
                       <select
                         value={regForm.college}
-                        onChange={(e) => setRegForm({ ...regForm, college: e.target.value, collegeOrDept: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setRegForm({ ...regForm, college: val, collegeOrDept: val });
+                          if (formErrors.college) {
+                            setFormErrors((prev) => ({ ...prev, college: '' }));
+                          }
+                        }}
                         className="w-full px-4 py-2.5 rounded-xl bg-[#0B0F2B] border border-white/15 text-sm text-white focus:outline-none focus:border-[#05BFE0] transition"
                       >
                         <option value="College of Information Technology Education (CITE)">
@@ -1237,7 +1247,21 @@ export const TechXSummit2026: React.FC = () => {
                         <option value="College of Accountancy">
                           College of Accountancy
                         </option>
+                        <option value="Others">
+                          Others
+                        </option>
                       </select>
+                      {regForm.college === 'Others' && (
+                        <div className="mt-2">
+                          <input
+                            type="text"
+                            placeholder="Specify College / Department / School"
+                            value={customCollege}
+                            onChange={(e) => setCustomCollege(e.target.value)}
+                            className="w-full px-3.5 py-2 rounded-xl bg-white/5 border border-white/15 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#05BFE0] transition"
+                          />
+                        </div>
+                      )}
                       {formErrors.college && (
                         <span className="text-[11px] text-[#FF2D8D] mt-1 block font-medium">{formErrors.college}</span>
                       )}
@@ -1249,28 +1273,16 @@ export const TechXSummit2026: React.FC = () => {
                       </label>
                       <input
                         type="text"
-                        list="tip-program-list"
-                        placeholder="e.g. BS Information Technology (BSIT)"
+                        placeholder="e.g. BS Information Technology, BS Computer Science, etc."
                         value={regForm.program}
-                        onChange={(e) => setRegForm({ ...regForm, program: e.target.value, course: e.target.value })}
+                        onChange={(e) => {
+                          setRegForm({ ...regForm, program: e.target.value, course: e.target.value });
+                          if (formErrors.program) {
+                            setFormErrors((prev) => ({ ...prev, program: '' }));
+                          }
+                        }}
                         className={`w-full px-4 py-2.5 rounded-xl bg-white/5 border ${formErrors.program ? 'border-[#FF2D8D]' : 'border-white/15'} text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#05BFE0] transition`}
                       />
-                      <datalist id="tip-program-list">
-                        <option value="BS Information Technology (BSIT)" />
-                        <option value="BS Computer Science (BSCS)" />
-                        <option value="BS Information Systems (BSIS)" />
-                        <option value="BS Computer Engineering (BSCpE)" />
-                        <option value="BS Electronics Engineering (BSECE)" />
-                        <option value="BS Electrical Engineering (BSEE)" />
-                        <option value="BS Civil Engineering (BSCE)" />
-                        <option value="BS Mechanical Engineering (BSME)" />
-                        <option value="BS Industrial Engineering (BSIE)" />
-                        <option value="BS Architecture (BSArch)" />
-                        <option value="BS Environmental & Sanitary Engineering (BSESE)" />
-                        <option value="BS Business Administration (BSBA)" />
-                        <option value="BS Accountancy (BSA)" />
-                        <option value="Associate in Computer Technology (ACT)" />
-                      </datalist>
                       {formErrors.program && (
                         <span className="text-[11px] text-[#FF2D8D] mt-1 block font-medium">{formErrors.program}</span>
                       )}
@@ -1452,7 +1464,9 @@ export const TechXSummit2026: React.FC = () => {
                       </div>
                       <div>
                         <span className="text-slate-500 block text-[10px] uppercase font-mono">College</span>
-                        <span className="text-slate-300 font-medium truncate block" title={regForm.college}>{regForm.college}</span>
+                        <span className="text-slate-300 font-medium truncate block" title={regForm.college === 'Others' && customCollege.trim() ? customCollege.trim() : regForm.college}>
+                          {regForm.college === 'Others' && customCollege.trim() ? customCollege.trim() : regForm.college}
+                        </span>
                       </div>
                       <div>
                         <span className="text-slate-500 block text-[10px] uppercase font-mono">Program</span>

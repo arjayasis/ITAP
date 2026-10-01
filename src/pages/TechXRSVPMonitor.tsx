@@ -549,6 +549,7 @@ export const TechXRSVPMonitor: React.FC = () => {
                   <option value="CAS">CAS</option>
                   <option value="CBE">CBE</option>
                   <option value="Accountancy">Accountancy</option>
+                  <option value="Others">Others</option>
                 </select>
               </>
             )}
