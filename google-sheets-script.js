@@ -78,23 +78,85 @@ function doPost(e) {
 
   try {
     var doc = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = doc.getSheetByName("TechX_RSVP_2026") || doc.getActiveSheet();
-    
-    // Auto-update header columns if needed
-    setupHeaders(sheet);
 
     var data = {};
     
     // Parse incoming data whether sent as JSON or URL encoded form data
-    if (e.postData && e.postData.contents) {
+    if (e && e.postData && e.postData.contents) {
       try {
         data = JSON.parse(e.postData.contents);
       } catch (err) {
         data = e.parameter || {};
       }
-    } else if (e.parameter) {
+    } else if (e && e.parameter) {
       data = e.parameter;
     }
+
+    if (data.isPingTest || data.test === true || data.test === 'true') {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Google Sheet connection active and responding.",
+        timestamp: new Date().toISOString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Branch 1: TechX Student Registration
+    var isStudent = (data.attendeeType === 'student') || !!data.studentNumber || !!data.course;
+    if (isStudent) {
+      var studentSheet = doc.getSheetByName("TechX_Students_2026");
+      if (!studentSheet) {
+        studentSheet = doc.insertSheet("TechX_Students_2026");
+      }
+
+      var studentHeaders = [
+        "Timestamp", "Registration ID", "Last Name", "First Name", "Middle Name",
+        "Full Name", "Mobile Number", "Email Address", "Student Number", "Course",
+        "T.I.P. Campus", "College / Department", "Data Privacy Agreed", "Event Name", "Event Date", "Venue"
+      ];
+
+      if (studentSheet.getLastRow() === 0) {
+        studentSheet.appendRow(studentHeaders);
+        var sHeaderRange = studentSheet.getRange(1, 1, 1, studentHeaders.length);
+        sHeaderRange.setBackground("#0B0F2B");
+        sHeaderRange.setFontColor("#05BFE0");
+        sHeaderRange.setFontWeight("bold");
+        studentSheet.setFrozenRows(1);
+      }
+
+      var sTimestamp = data.timestamp || new Date().toLocaleString("en-PH", { timeZone: "Asia/Manila" });
+      var sRegId = data.registrationId || data.ticketId || ("TIP-TX-" + Math.floor(100000 + Math.random() * 900000));
+      var sLastName = (data.lastName || "").trim();
+      var sFirstName = (data.firstName || "").trim();
+      var sMiddleName = (data.middleName || "").trim();
+      var sFullName = data.fullName || (sFirstName + " " + (sMiddleName ? sMiddleName + " " : "") + sLastName).trim();
+      var sMobile = data.mobile || data.phone || "N/A";
+      var sEmail = (data.email || "N/A").toLowerCase();
+      var sStudentNumber = data.studentNumber || data.idNumber || "N/A";
+      var sCourse = data.course || "N/A";
+      var sCampus = data.campus || "T.I.P. Quezon City";
+      var sDept = data.collegeOrDept || "N/A";
+      var sPrivacy = "Yes";
+      var sEvent = data.eventName || "TECHX SUMMIT 2026";
+      var sDate = data.eventDate || "October 15, 2026";
+      var sVenue = data.venue || "Anniversary Hall, T.I.P. Quezon City";
+
+      studentSheet.appendRow([
+        sTimestamp, sRegId, sLastName, sFirstName, sMiddleName,
+        sFullName, sMobile, sEmail, sStudentNumber, sCourse,
+        sCampus, sDept, sPrivacy, sEvent, sDate, sVenue
+      ]);
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "TechX Student registration successfully recorded in Google Sheets",
+        registrationId: sRegId,
+        studentNumber: sStudentNumber
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Branch 2: GMM Industry RSVP
+    var sheet = doc.getSheetByName("TechX_RSVP_2026") || doc.getActiveSheet();
+    setupHeaders(sheet);
 
     var timestamp = data.timestamp || new Date().toLocaleString("en-PH", { timeZone: "Asia/Manila" });
     var registrationId = data.registrationId || data.regId || "TECHX-ITAP-" + Math.floor(100000 + Math.random() * 900000);

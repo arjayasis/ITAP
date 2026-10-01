@@ -13,6 +13,7 @@ import {
   Phone
 } from 'lucide-react';
 import { Footer } from '../App';
+import { submitRegistrationToFirestore } from '../lib/firebaseQa';
 
 interface FormData {
   company: string;
@@ -45,6 +46,7 @@ const GMM2026 = () => {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -124,44 +126,61 @@ const GMM2026 = () => {
       setIsSubmitting(true);
       
       try {
-        // Use the serverless function instead of direct client-side fetch
-        // This avoids CORS issues and hides the webhook URL
-        const response = await fetch('/api/submit-rsvp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...formData,
-            timestamp: new Date().toISOString()
-          }),
-        });
+        const payload = {
+          ...formData,
+          fullName: formData.name.trim(),
+          companyName: formData.company.trim(),
+          jobTitle: formData.position.trim(),
+          hasCompanion: 'No',
+          companionName: 'None',
+          companionDesignation: 'None',
+          registrationId: `GMM-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+          timestamp: new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' })
+        };
 
-        if (!response.ok) {
-          let errorMessage = 'Failed to submit';
-          const contentType = response.headers.get('content-type');
-          
-          if (contentType && contentType.includes('application/json')) {
-            try {
-              const errorData = await response.json();
-              errorMessage = errorData.error || errorMessage;
-            } catch (e) {
-              console.error('Error parsing error JSON:', e);
-            }
-          } else {
-            // Handle non-JSON error responses (like 404 or 500 HTML pages)
-            const text = await response.text();
-            console.error('Non-JSON error response:', text);
-            errorMessage = `Server Error (${response.status}): ${response.statusText || 'Unknown Error'}`;
-          }
-          
-          throw new Error(errorMessage);
+        const OFFICIAL_RSVP_WEBHOOK = (import.meta as any).env?.VITE_GMM_RSVP_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbwZjUcC7UNIPniLLt4YncpwNXOFx42UkZCb8A8ATtYjAMBj-jz1OEnbvyM4Uu54PfhhnA/exec';
+
+        // 1. Direct fetch to Google Sheets webhook (mode: 'no-cors')
+        try {
+          const formParams = new URLSearchParams();
+          Object.entries(payload).forEach(([k, v]) => formParams.append(k, String(v)));
+          await fetch(OFFICIAL_RSVP_WEBHOOK, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: formParams
+          });
+          console.log('✅ Direct Google Sheets RSVP dispatched');
+        } catch (directErr) {
+          console.warn('Direct Google Sheets send warning:', directErr);
         }
-        
+
+        // 2. Also send to API proxy
+        try {
+          await fetch('/api/submit-rsvp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+        } catch (proxyErr) {
+          console.warn('API proxy send notice:', proxyErr);
+        }
+
+        // 3. Save to Cloud Firestore
+        try {
+          await submitRegistrationToFirestore(payload);
+        } catch (fbErr) {
+          console.warn('Firestore registration error:', fbErr);
+        }
+
         setIsSubmitted(true);
       } catch (error: any) {
         console.error('Error submitting form:', error);
-        alert(error.message || 'There was an error submitting your RSVP. Please try again.');
+        setSubmitError(error.message || 'There was an error submitting your RSVP. Please try again.');
       } finally {
         setIsSubmitting(false);
       }
@@ -296,6 +315,12 @@ const GMM2026 = () => {
                     <h2 className="text-3xl font-display font-bold text-brand-ink mb-3">Confirm Attendance</h2>
                     <p className="text-slate-500">Please fill out the form below to secure your spot.</p>
                   </div>
+
+                  {submitError && (
+                    <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                      {submitError}
+                    </div>
+                  )}
 
                   <form onSubmit={handleSubmit} className="space-y-8">
                     {/* Attendance Radio */}

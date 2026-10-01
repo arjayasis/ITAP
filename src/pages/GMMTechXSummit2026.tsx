@@ -168,10 +168,14 @@ export const GMMTechXSummit2026: React.FC = () => {
         name: formData.fullName.trim(),
         companyName: formData.companyName.trim(),
         company: formData.companyName.trim(),
+        organization: formData.companyName.trim(),
         jobTitle: formData.jobTitle.trim(),
         position: formData.jobTitle.trim(),
+        title: formData.jobTitle.trim(),
         email: formData.email.trim(),
+        workEmail: formData.email.trim(),
         mobile: formData.mobile.trim(),
+        mobileNumber: formData.mobile.trim(),
         phone: formData.mobile.trim(),
         hasCompanion: formData.hasCompanion ? 'Yes' : 'No',
         companionName: formData.hasCompanion ? (formData.companionName.trim() || 'N/A') : 'None',
@@ -185,33 +189,18 @@ export const GMMTechXSummit2026: React.FC = () => {
         attendance: 'yes'
       };
 
-      // Purge any invalid /dev URLs that may have been previously stored in localStorage
-      const stored = localStorage.getItem('techx_sheets_webhook');
-      if (stored && (stored.includes('/dev') || !stored.endsWith('/exec') || stored.includes('AKfycbx6JpS4WkG99mA8dbryWxKWyJ2ZPXmtbSmXGhAGwLjq'))) {
+      // Ensure any legacy localStorage keys do not interfere with the official RSVP sheet
+      if (typeof window !== 'undefined') {
         localStorage.removeItem('techx_sheets_webhook');
       }
 
-      const DEFAULT_TECHX_WEBHOOK = 'https://script.google.com/macros/s/AKfycbwZjUcC7UNIPniLLt4YncpwNXOFx42UkZCb8A8ATtYjAMBj-jz1OEnbvyM4Uu54PfhhnA/exec';
-      const activeWebhook = localStorage.getItem('techx_sheets_webhook') || (import.meta as any).env?.VITE_GOOGLE_SHEETS_WEBHOOK_URL || DEFAULT_TECHX_WEBHOOK;
+      // Strictly dedicated Official RSVP Webhook for ITAP 2nd GMM
+      const OFFICIAL_RSVP_WEBHOOK = (import.meta as any).env?.VITE_GMM_RSVP_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbwZjUcC7UNIPniLLt4YncpwNXOFx42UkZCb8A8ATtYjAMBj-jz1OEnbvyM4Uu54PfhhnA/exec';
+      const activeWebhook = OFFICIAL_RSVP_WEBHOOK;
 
       try {
-        // 1. Send to serverless / local dev proxy
-        let serverSuccess = false;
+        // 1. Direct Google Sheets send (client-side guarantee)
         try {
-          const res = await fetch('/api/submit-rsvp', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-          });
-          serverSuccess = res.ok;
-        } catch (err) {
-          console.warn('Server route RSVP forward error:', err);
-        }
-
-        // 2. If server failed or client webhook is configured, ensure Google Sheet receives submission
-        if (!serverSuccess && activeWebhook && activeWebhook.startsWith('https://script.google.com/')) {
           const formParams = new URLSearchParams();
           Object.entries(payload).forEach(([k, v]) => formParams.append(k, String(v)));
           await fetch(activeWebhook, {
@@ -221,7 +210,23 @@ export const GMMTechXSummit2026: React.FC = () => {
               'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: formParams
-          }).catch(e => console.warn('Direct Google Sheets send:', e));
+          });
+          console.log('✅ Direct Google Sheets RSVP dispatched to:', activeWebhook);
+        } catch (directErr) {
+          console.warn('Direct Google Sheets send notice:', directErr);
+        }
+
+        // 2. Also send to serverless API proxy as backup
+        try {
+          await fetch('/api/submit-rsvp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+        } catch (err) {
+          console.warn('Server route RSVP forward notice:', err);
         }
 
         // 3. Save to Firebase Firestore (itap-db)

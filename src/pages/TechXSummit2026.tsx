@@ -39,10 +39,18 @@ import {
   Scale,
   BookOpen,
   Compass,
-  Play
+  Play,
+  FileSpreadsheet,
+  Copy,
+  Code2,
+  Database,
+  RefreshCw,
+  AlertTriangle,
+  UserCheck
 } from 'lucide-react';
 import { memberCompanies } from '../data/membersData';
 import { submitRegistrationToFirestore } from '../lib/firebaseQa';
+import { submitStudentRegistrationToGoogleSheets } from '../lib/googleSheetsTechX';
 
 // Brand Assets
 const ASSETS = {
@@ -55,15 +63,22 @@ const ASSETS = {
   witsaLogo: 'https://marketing.timcorp.net.ph/hubfs/ITAP/witsa.jpeg'
 };
 
-interface RegistrationForm {
-  attendeeType: 'student' | 'faculty' | 'industry';
-  fullName: string;
-  email: string;
+interface StudentRegistrationForm {
+  firstName: string;
+  lastName: string;
+  middleName: string;
   mobile: string;
-  campus: string;
-  collegeOrDept: string;
-  idNumber: string;
-  interests: string[];
+  email: string;
+  studentNumber?: string;
+  college: string;
+  program: string;
+  location: 'Manila' | 'Quezon City';
+  yearLevel: '1st Year' | '2nd Year' | '3rd Year' | '4th Year' | '5th Year' | 'Graduate / Masteral';
+  // Legacy / compatibility aliases
+  course?: string;
+  campus?: string;
+  collegeOrDept?: string;
+  privacyConsent: boolean;
 }
 
 export const TechXSummit2026: React.FC = () => {
@@ -79,15 +94,17 @@ export const TechXSummit2026: React.FC = () => {
 
   // Registration Modal & State
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [regForm, setRegForm] = useState<RegistrationForm>({
-    attendeeType: 'student',
-    fullName: '',
-    email: '',
+  const [regForm, setRegForm] = useState<StudentRegistrationForm>({
+    firstName: '',
+    lastName: '',
+    middleName: '',
     mobile: '',
-    campus: 'T.I.P. Quezon City',
-    collegeOrDept: 'College of Information Technology Education (CITE)',
-    idNumber: '',
-    interests: ['AI & Cloud Innovation']
+    email: '',
+    college: 'College of Information Technology Education (CITE)',
+    program: 'BS Information Technology (BSIT)',
+    location: 'Quezon City',
+    yearLevel: '4th Year',
+    privacyConsent: false
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -159,17 +176,30 @@ export const TechXSummit2026: React.FC = () => {
 
   const validateRegistration = () => {
     const errs: Record<string, string> = {};
-    if (!regForm.fullName.trim()) errs.fullName = 'Full name is required';
+    if (!regForm.firstName.trim()) errs.firstName = 'First name is required';
+    if (!regForm.lastName.trim()) errs.lastName = 'Last name is required';
+    if (!regForm.college) {
+      errs.college = 'Please select your College';
+    }
+    if (!regForm.program.trim()) {
+      errs.program = 'Program is required';
+    }
+    if (!regForm.location) {
+      errs.location = 'Please select a location (Manila / Quezon City)';
+    }
+    if (!regForm.yearLevel) {
+      errs.yearLevel = 'Please select your Year Level';
+    }
+    if (!regForm.mobile.trim()) {
+      errs.mobile = 'Mobile number is required';
+    }
     if (!regForm.email.trim()) {
       errs.email = 'Email address is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regForm.email.trim())) {
       errs.email = 'Please enter a valid email address';
     }
-    if (!regForm.mobile.trim()) {
-      errs.mobile = 'Mobile phone is required';
-    }
-    if (!regForm.idNumber.trim()) {
-      errs.idNumber = regForm.attendeeType === 'student' ? 'Student ID is required' : 'Employee ID is required';
+    if (!regForm.privacyConsent) {
+      errs.privacyConsent = 'You must agree to the Data Privacy Notice to register';
     }
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
@@ -181,30 +211,50 @@ export const TechXSummit2026: React.FC = () => {
 
     setIsSubmitting(true);
     const ticketId = `TIP-TX-${Math.floor(100000 + Math.random() * 900000)}`;
+    const fullName = `${regForm.firstName.trim()} ${regForm.middleName ? regForm.middleName.trim() + ' ' : ''}${regForm.lastName.trim()}`;
 
     const registrationPayload = {
       registrationId: ticketId,
-      fullName: regForm.fullName.trim(),
+      attendeeType: 'student',
+      firstName: regForm.firstName.trim(),
+      lastName: regForm.lastName.trim(),
+      middleName: (regForm.middleName || '').trim(),
+      fullName,
+      college: regForm.college,
+      program: regForm.program.trim(),
+      location: regForm.location,
+      yearLevel: regForm.yearLevel,
+      // Compatibility fields
+      collegeOrDept: regForm.college,
+      course: regForm.program.trim(),
+      campus: `T.I.P. ${regForm.location}`,
       email: regForm.email.trim().toLowerCase(),
       mobile: regForm.mobile.trim(),
-      attendeeType: regForm.attendeeType,
-      campus: regForm.campus,
-      collegeOrDept: regForm.collegeOrDept,
-      idNumber: regForm.idNumber.trim(),
-      interests: regForm.interests,
+      dataPrivacyConsent: true,
+      dataPrivacyAcceptedAt: new Date().toISOString(),
       eventName: 'TECHX SUMMIT 2026',
       eventDate: 'October 15, 2026 (8:00 AM – 5:00 PM)',
-      venue: 'T.I.P. Quezon City – Anniversary Hall',
+      venue: regForm.location === 'Quezon City' 
+        ? 'T.I.P. Quezon City – Anniversary Hall' 
+        : 'T.I.P. Quezon City – Anniversary Hall (Delegate from Manila)',
       createdAt: Date.now()
     };
 
     try {
+      // 1. Submit student registration to Google Sheets in background via server proxy / Apps Script Webhook
+      await submitStudentRegistrationToGoogleSheets(registrationPayload);
+    } catch (sheetErr) {
+      console.warn('Google Sheets sync warning (non-blocking):', sheetErr);
+    }
+
+    try {
+      // 2. Submit to Cloud Firestore
       await submitRegistrationToFirestore(registrationPayload);
     } catch (err) {
       console.warn('Fallback: stored locally', err);
     }
 
-    // Save ticket locally for offline retrieval
+    // 3. Save ticket locally for offline retrieval
     localStorage.setItem('techx_summit_ticket', JSON.stringify(registrationPayload));
 
     setIsSubmitting(false);
@@ -960,19 +1010,10 @@ export const TechXSummit2026: React.FC = () => {
             <button
               id="closing-cta-register-btn"
               onClick={() => setIsRegisterModalOpen(true)}
-              className="w-full sm:w-auto py-4 px-10 rounded-2xl font-bold text-base text-white bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] shadow-xl shadow-[#FF2D8D]/30 transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2 tracking-wide"
+              className="w-full sm:w-auto py-4 px-10 rounded-2xl font-bold text-base text-white bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] shadow-xl shadow-[#FF2D8D]/30 transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2 tracking-wide cursor-pointer"
             >
               <span>REGISTER NOW</span>
               <ArrowRight className="w-5 h-5" />
-            </button>
-
-            <button
-              id="closing-cta-share-btn"
-              onClick={handleShare}
-              className="w-full sm:w-auto py-4 px-6 rounded-2xl font-semibold text-sm text-slate-200 border border-white/15 hover:bg-white/5 transition-all flex items-center justify-center gap-2"
-            >
-              <Share2 className="w-4 h-4 text-[#05BFE0]" />
-              <span>Share Event</span>
             </button>
           </div>
         </div>
@@ -983,7 +1024,7 @@ export const TechXSummit2026: React.FC = () => {
          ========================================================================= */}
       <footer className="py-14 border-t border-white/10 bg-[#06091A] text-slate-400 text-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
             {/* Col 1: Brand & Route */}
             <div className="space-y-4 md:col-span-1">
               <div className="flex items-center gap-3">
@@ -1031,44 +1072,7 @@ export const TechXSummit2026: React.FC = () => {
               </ul>
             </div>
 
-            {/* Col 3: Quick Navigation */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-mono uppercase tracking-widest text-white font-bold">
-                Direct Portals
-              </h4>
-              <ul className="space-y-2 text-xs">
-                <li>
-                  <Link to="/techx-qa" className="hover:text-[#05BFE0] transition-colors flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#05BFE0]" />
-                    <span>TechX Participant Live Q&A</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/techx-live-qa" className="hover:text-[#05BFE0] transition-colors flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF2D8D]" />
-                    <span>TechX Stage Live Display</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/techx-qa-host" className="hover:text-[#05BFE0] transition-colors flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-                    <span>TechX Host Moderation Room</span>
-                  </Link>
-                </li>
-                <li>
-                  <a
-                    href="https://www.tip.edu.ph"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-white transition-colors"
-                  >
-                    T.I.P. Official Academic Portal
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Col 4: Contact & Secretariat */}
+            {/* Col 3: Contact & Secretariat */}
             <div className="space-y-3">
               <h4 className="text-xs font-mono uppercase tracking-widest text-white font-bold">
                 Secretariat & Inquiries
@@ -1132,144 +1136,91 @@ export const TechXSummit2026: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#05BFE0]/20 text-[#05BFE0] uppercase font-bold">
-                      Official Registration
+                      Student Registration
                     </span>
-                    <span className="text-xs text-slate-400">• T.I.P. Quezon City</span>
+                    <span className="text-xs text-slate-400">• Exclusive to T.I.P. Students</span>
                   </div>
                   <h3 className="text-xl sm:text-2xl font-bold text-white font-display">
-                    {isRegistered ? 'Your Registration Pass' : 'Reserve Your TechX Summit Pass'}
+                    {isRegistered ? 'Your Student Delegate Pass' : 'Reserve Your TechX Summit Student Pass'}
                   </h3>
                 </div>
-                <button
-                  onClick={() => setIsRegisterModalOpen(false)}
-                  className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsRegisterModalOpen(false)}
+                    className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Body */}
               {!isRegistered ? (
                 <form onSubmit={handleRegistrationSubmit} className="space-y-4">
-                  {/* Attendee Type Pill Selector */}
+                  {/* Student Name: Separate First Name and Last Name */}
                   <div>
-                    <label className="text-xs font-mono uppercase text-slate-400 block mb-2 font-medium">
-                      I am registering as:
+                    <label className="text-xs text-slate-300 font-semibold uppercase tracking-wider font-mono block mb-1.5 flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5 text-[#05BFE0]" />
+                      <span>Student Name</span>
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { label: 'T.I.P. Student', value: 'student' },
-                        { label: 'T.I.P. Faculty/Staff', value: 'faculty' },
-                        { label: 'ITAP / Industry', value: 'industry' }
-                      ].map((type) => (
-                        <button
-                          key={type.value}
-                          type="button"
-                          onClick={() => setRegForm({ ...regForm, attendeeType: type.value as any })}
-                          className={`py-2.5 px-3 rounded-xl text-xs font-semibold border transition-all ${
-                            regForm.attendeeType === type.value
-                              ? 'bg-[#05BFE0]/20 border-[#05BFE0] text-white shadow-sm'
-                              : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          {type.label}
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
+                          First Name <span className="text-[#FF2D8D]">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Juan"
+                          value={regForm.firstName}
+                          onChange={(e) => setRegForm({ ...regForm, firstName: e.target.value })}
+                          className={`w-full px-3.5 py-2.5 rounded-xl bg-white/5 border ${formErrors.firstName ? 'border-[#FF2D8D]' : 'border-white/15'} text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#05BFE0] transition`}
+                        />
+                        {formErrors.firstName && (
+                          <span className="text-[11px] text-[#FF2D8D] mt-1 block font-medium">{formErrors.firstName}</span>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
+                          Last Name <span className="text-[#FF2D8D]">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Dela Cruz"
+                          value={regForm.lastName}
+                          onChange={(e) => setRegForm({ ...regForm, lastName: e.target.value })}
+                          className={`w-full px-3.5 py-2.5 rounded-xl bg-white/5 border ${formErrors.lastName ? 'border-[#FF2D8D]' : 'border-white/15'} text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#05BFE0] transition`}
+                        />
+                        {formErrors.lastName && (
+                          <span className="text-[11px] text-[#FF2D8D] mt-1 block font-medium">{formErrors.lastName}</span>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
+                          Middle Name <span className="text-slate-500 font-normal">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Santos"
+                          value={regForm.middleName}
+                          onChange={(e) => setRegForm({ ...regForm, middleName: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#05BFE0] transition"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  {/* Name & Email */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* College & Program */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
                       <label className="text-xs text-slate-300 font-medium block mb-1">
-                        Full Name <span className="text-[#FF2D8D]">*</span>
+                        College <span className="text-[#FF2D8D]">*</span>
                       </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Juan Dela Cruz"
-                        value={regForm.fullName}
-                        onChange={(e) => setRegForm({ ...regForm, fullName: e.target.value })}
-                        className={`w-full px-4 py-2.5 rounded-xl bg-white/5 border ${formErrors.fullName ? 'border-[#FF2D8D]' : 'border-white/15'} text-sm text-white focus:outline-none focus:border-[#05BFE0]`}
-                      />
-                      {formErrors.fullName && (
-                        <span className="text-[11px] text-[#FF2D8D] mt-1 block">{formErrors.fullName}</span>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-slate-300 font-medium block mb-1">
-                        Institutional Email <span className="text-[#FF2D8D]">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        placeholder={regForm.attendeeType === 'student' ? 'e.g. jdelacruz@tip.edu.ph' : 'name@company.com'}
-                        value={regForm.email}
-                        onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                        className={`w-full px-4 py-2.5 rounded-xl bg-white/5 border ${formErrors.email ? 'border-[#FF2D8D]' : 'border-white/15'} text-sm text-white focus:outline-none focus:border-[#05BFE0]`}
-                      />
-                      {formErrors.email && (
-                        <span className="text-[11px] text-[#FF2D8D] mt-1 block">{formErrors.email}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Mobile & Student/Employee ID */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-slate-300 font-medium block mb-1">
-                        Mobile Phone <span className="text-[#FF2D8D]">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        placeholder="+63 912 345 6789"
-                        value={regForm.mobile}
-                        onChange={(e) => setRegForm({ ...regForm, mobile: e.target.value })}
-                        className={`w-full px-4 py-2.5 rounded-xl bg-white/5 border ${formErrors.mobile ? 'border-[#FF2D8D]' : 'border-white/15'} text-sm text-white focus:outline-none focus:border-[#05BFE0]`}
-                      />
-                      {formErrors.mobile && (
-                        <span className="text-[11px] text-[#FF2D8D] mt-1 block">{formErrors.mobile}</span>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-slate-300 font-medium block mb-1">
-                        {regForm.attendeeType === 'student' ? 'Student ID Number' : 'Employee / PRC ID'}{' '}
-                        <span className="text-[#FF2D8D]">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder={regForm.attendeeType === 'student' ? 'e.g. 21-10293' : 'e.g. TIP-FAC-8821'}
-                        value={regForm.idNumber}
-                        onChange={(e) => setRegForm({ ...regForm, idNumber: e.target.value })}
-                        className={`w-full px-4 py-2.5 rounded-xl bg-white/5 border ${formErrors.idNumber ? 'border-[#FF2D8D]' : 'border-white/15'} text-sm text-white focus:outline-none focus:border-[#05BFE0]`}
-                      />
-                      {formErrors.idNumber && (
-                        <span className="text-[11px] text-[#FF2D8D] mt-1 block">{formErrors.idNumber}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Campus & College */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-slate-300 font-medium block mb-1">T.I.P. Campus</label>
                       <select
-                        value={regForm.campus}
-                        onChange={(e) => setRegForm({ ...regForm, campus: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl bg-[#0B0F2B] border border-white/15 text-sm text-white focus:outline-none focus:border-[#05BFE0]"
-                      >
-                        <option value="T.I.P. Quezon City">T.I.P. Quezon City (Host Campus)</option>
-                        <option value="T.I.P. Manila">T.I.P. Manila Campus</option>
-                        <option value="External / Partner Institution">External / ITAP Guest</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-slate-300 font-medium block mb-1">College / Department</label>
-                      <select
-                        value={regForm.collegeOrDept}
-                        onChange={(e) => setRegForm({ ...regForm, collegeOrDept: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl bg-[#0B0F2B] border border-white/15 text-sm text-white focus:outline-none focus:border-[#05BFE0]"
+                        value={regForm.college}
+                        onChange={(e) => setRegForm({ ...regForm, college: e.target.value, collegeOrDept: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl bg-[#0B0F2B] border border-white/15 text-sm text-white focus:outline-none focus:border-[#05BFE0] transition"
                       >
                         <option value="College of Information Technology Education (CITE)">
                           College of Information Technology Education (CITE)
@@ -1277,32 +1228,188 @@ export const TechXSummit2026: React.FC = () => {
                         <option value="College of Engineering & Architecture (CEA)">
                           College of Engineering & Architecture (CEA)
                         </option>
-                        <option value="College of Arts & Sciences">College of Arts & Sciences</option>
-                        <option value="College of Business Education">College of Business Education</option>
-                        <option value="ITAP Corporate Enterprise Delegate">ITAP Corporate Enterprise Delegate</option>
+                        <option value="College of Arts & Sciences (CAS)">
+                          College of Arts & Sciences (CAS)
+                        </option>
+                        <option value="College of Business Education (CBE)">
+                          College of Business Education (CBE)
+                        </option>
+                        <option value="College of Accountancy">
+                          College of Accountancy
+                        </option>
                       </select>
+                      {formErrors.college && (
+                        <span className="text-[11px] text-[#FF2D8D] mt-1 block font-medium">{formErrors.college}</span>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-slate-300 font-medium block mb-1">
+                        Program <span className="text-[#FF2D8D]">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        list="tip-program-list"
+                        placeholder="e.g. BS Information Technology (BSIT)"
+                        value={regForm.program}
+                        onChange={(e) => setRegForm({ ...regForm, program: e.target.value, course: e.target.value })}
+                        className={`w-full px-4 py-2.5 rounded-xl bg-white/5 border ${formErrors.program ? 'border-[#FF2D8D]' : 'border-white/15'} text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#05BFE0] transition`}
+                      />
+                      <datalist id="tip-program-list">
+                        <option value="BS Information Technology (BSIT)" />
+                        <option value="BS Computer Science (BSCS)" />
+                        <option value="BS Information Systems (BSIS)" />
+                        <option value="BS Computer Engineering (BSCpE)" />
+                        <option value="BS Electronics Engineering (BSECE)" />
+                        <option value="BS Electrical Engineering (BSEE)" />
+                        <option value="BS Civil Engineering (BSCE)" />
+                        <option value="BS Mechanical Engineering (BSME)" />
+                        <option value="BS Industrial Engineering (BSIE)" />
+                        <option value="BS Architecture (BSArch)" />
+                        <option value="BS Environmental & Sanitary Engineering (BSESE)" />
+                        <option value="BS Business Administration (BSBA)" />
+                        <option value="BS Accountancy (BSA)" />
+                        <option value="Associate in Computer Technology (ACT)" />
+                      </datalist>
+                      {formErrors.program && (
+                        <span className="text-[11px] text-[#FF2D8D] mt-1 block font-medium">{formErrors.program}</span>
+                      )}
                     </div>
                   </div>
 
-                  <p className="text-[11px] text-slate-400 pt-2">
-                    By clicking Register, you confirm your attendance at T.I.P. Quezon City Anniversary Hall on
-                    October 15, 2026. Official electronic badge and certificate eligibility will be dispatched to your email.
-                  </p>
+                  {/* Location (Manila / Quezon City) & Year Level */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="text-xs text-slate-300 font-medium block mb-1">
+                        Location <span className="text-[#FF2D8D]">*</span>
+                      </label>
+                      <select
+                        value={regForm.location}
+                        onChange={(e) => setRegForm({ ...regForm, location: e.target.value as 'Manila' | 'Quezon City', campus: `T.I.P. ${e.target.value}` })}
+                        className="w-full px-4 py-2.5 rounded-xl bg-[#0B0F2B] border border-white/15 text-sm text-white focus:outline-none focus:border-[#05BFE0] transition"
+                      >
+                        <option value="Quezon City">Quezon City</option>
+                        <option value="Manila">Manila</option>
+                      </select>
+                      {formErrors.location && (
+                        <span className="text-[11px] text-[#FF2D8D] mt-1 block font-medium">{formErrors.location}</span>
+                      )}
+                    </div>
 
-                  <div className="pt-4 flex items-center justify-end gap-3">
+                    <div>
+                      <label className="text-xs text-slate-300 font-medium block mb-1">
+                        Year Level <span className="text-[#FF2D8D]">*</span>
+                      </label>
+                      <select
+                        value={regForm.yearLevel}
+                        onChange={(e) => setRegForm({ ...regForm, yearLevel: e.target.value as any })}
+                        className="w-full px-4 py-2.5 rounded-xl bg-[#0B0F2B] border border-white/15 text-sm text-white focus:outline-none focus:border-[#05BFE0] transition"
+                      >
+                        <option value="1st Year">1st Year</option>
+                        <option value="2nd Year">2nd Year</option>
+                        <option value="3rd Year">3rd Year</option>
+                        <option value="4th Year">4th Year</option>
+                        <option value="5th Year">5th Year</option>
+                        <option value="Graduate / Masteral">Graduate / Masteral</option>
+                      </select>
+                      {formErrors.yearLevel && (
+                        <span className="text-[11px] text-[#FF2D8D] mt-1 block font-medium">{formErrors.yearLevel}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Contact Information Fields (Mobile & Email) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-slate-300 font-medium block mb-1">
+                        Mobile Number <span className="text-[#FF2D8D]">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="e.g. +63 912 345 6789"
+                        value={regForm.mobile}
+                        onChange={(e) => setRegForm({ ...regForm, mobile: e.target.value })}
+                        className={`w-full px-3.5 py-2.5 rounded-xl bg-white/5 border ${formErrors.mobile ? 'border-[#FF2D8D]' : 'border-white/15'} text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#05BFE0] transition`}
+                      />
+                      {formErrors.mobile && (
+                        <span className="text-[11px] text-[#FF2D8D] mt-1 block font-medium">{formErrors.mobile}</span>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-slate-300 font-medium block mb-1">
+                        Email Address <span className="text-[#FF2D8D]">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="e.g. jdelacruz@tip.edu.ph"
+                        value={regForm.email}
+                        onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
+                        className={`w-full px-3.5 py-2.5 rounded-xl bg-white/5 border ${formErrors.email ? 'border-[#FF2D8D]' : 'border-white/15'} text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#05BFE0] transition`}
+                      />
+                      {formErrors.email && (
+                        <span className="text-[11px] text-[#FF2D8D] mt-1 block font-medium">{formErrors.email}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Data Privacy Notice & Disclaimer in Collecting Data */}
+                  <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-4 space-y-3 mt-2">
+                    <div className="flex items-start gap-2.5">
+                      <ShieldCheck className="w-5 h-5 text-[#05BFE0] shrink-0 mt-0.5" />
+                      <div>
+                        <h5 className="text-xs font-semibold text-white font-mono uppercase tracking-wider">
+                          Data Privacy Notice (Republic Act No. 10173)
+                        </h5>
+                        <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                          In compliance with the <strong>Data Privacy Act of 2012 (RA 10173)</strong>, the Technological Institute of the Philippines (T.I.P.) and ITAP are committed to protecting your personal information.
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                          The personal data collected in this registration form (Last Name, First Name, Middle Name, Mobile Number, Email Address, College, Program, Location, and Year Level) will be collected and processed solely for verifying student delegate eligibility, event admissions, delegate badge generation, attendance tracking, and issuing digital certificates for <strong>TECHX SUMMIT 2026</strong>.
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                          Your information will be treated with strict confidentiality, stored securely, and will not be shared with unauthorized third parties.
+                        </p>
+                      </div>
+                    </div>
+
+                    <label className="flex items-start gap-2.5 pt-2.5 border-t border-white/10 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={regForm.privacyConsent}
+                        onChange={(e) => {
+                          setRegForm({ ...regForm, privacyConsent: e.target.checked });
+                          if (e.target.checked && formErrors.privacyConsent) {
+                            setFormErrors((prev) => ({ ...prev, privacyConsent: '' }));
+                          }
+                        }}
+                        className="mt-0.5 h-4 w-4 rounded border-white/20 bg-white/5 text-[#05BFE0] focus:ring-[#05BFE0] focus:ring-offset-0 transition cursor-pointer"
+                      />
+                      <span className="text-xs text-slate-300 group-hover:text-white leading-snug">
+                        I have read and understand the <strong>Data Privacy Notice</strong> and consent to the collection and processing of my personal student details for TECHX SUMMIT 2026. <span className="text-[#FF2D8D]">*</span>
+                      </span>
+                    </label>
+                    {formErrors.privacyConsent && (
+                      <span className="text-[11px] text-[#FF2D8D] block font-medium">
+                        {formErrors.privacyConsent}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="pt-3 flex items-center justify-end gap-3">
                     <button
                       type="button"
                       onClick={() => setIsRegisterModalOpen(false)}
-                      className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-400 hover:text-white"
+                      className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="px-6 py-2.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] shadow-lg shadow-[#FF2D8D]/25 disabled:opacity-50"
+                      className="px-6 py-2.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] shadow-lg shadow-[#FF2D8D]/25 disabled:opacity-50 transition-all cursor-pointer"
                     >
-                      {isSubmitting ? 'Confirming Reservation...' : 'Complete Free Registration'}
+                      {isSubmitting ? 'Confirming Student Pass...' : 'Complete Free Registration'}
                     </button>
                   </div>
                 </form>
@@ -1316,47 +1423,72 @@ export const TechXSummit2026: React.FC = () => {
                   <div>
                     <h4 className="text-2xl font-bold text-white mb-1">Registration Confirmed!</h4>
                     <p className="text-sm text-slate-300">
-                      Welcome, <span className="text-[#05BFE0] font-semibold">{regForm.fullName}</span>! You are officially
-                      registered for TECHX SUMMIT 2026: CREATING WHAT’S NEXT.
+                      Welcome, <span className="text-[#05BFE0] font-semibold">{regForm.firstName} {regForm.middleName ? regForm.middleName + ' ' : ''}{regForm.lastName}</span>! Your official T.I.P. Student Pass has been confirmed for TECHX SUMMIT 2026.
                     </p>
                   </div>
 
                   {/* Pass Visual */}
-                  <div className="p-6 rounded-3xl bg-[#0B0F2B] border border-white/15 max-w-md mx-auto text-left relative overflow-hidden">
+                  <div className="p-6 rounded-3xl bg-[#0B0F2B] border border-white/15 max-w-md mx-auto text-left relative overflow-hidden shadow-2xl">
                     <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
                       <div>
                         <span className="text-[10px] font-mono text-[#05BFE0] uppercase tracking-widest block font-semibold">
                           TECHX SUMMIT 2026
                         </span>
-                        <span className="text-sm font-bold text-white">DELEGATE ACCESS PASS</span>
+                        <span className="text-sm font-bold text-white">STUDENT DELEGATE PASS</span>
                       </div>
-                      <div className="px-2 py-1 rounded bg-[#FF2D8D]/20 border border-[#FF2D8D]/30 text-[10px] font-mono text-[#FF2D8D] uppercase font-bold">
-                        {regForm.attendeeType.toUpperCase()}
+                      <div className="px-2.5 py-1 rounded bg-[#05BFE0]/20 border border-[#05BFE0]/30 text-[10px] font-mono text-[#05BFE0] uppercase font-bold">
+                        T.I.P. STUDENT
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 text-xs mb-4">
                       <div>
-                        <span className="text-slate-500 block text-[10px] uppercase font-mono">Attendee</span>
-                        <span className="text-white font-semibold">{regForm.fullName}</span>
+                        <span className="text-slate-500 block text-[10px] uppercase font-mono">First Name</span>
+                        <span className="text-white font-semibold">{regForm.firstName}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px] uppercase font-mono">Last Name</span>
+                        <span className="text-white font-semibold">{regForm.lastName}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px] uppercase font-mono">College</span>
+                        <span className="text-slate-300 font-medium truncate block" title={regForm.college}>{regForm.college}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px] uppercase font-mono">Program</span>
+                        <span className="text-slate-300 font-medium truncate block" title={regForm.program}>{regForm.program}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px] uppercase font-mono">Location</span>
+                        <span className="text-[#05BFE0] font-semibold">{regForm.location}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px] uppercase font-mono">Year Level</span>
+                        <span className="text-purple-300 font-semibold">{regForm.yearLevel}</span>
                       </div>
                       <div>
                         <span className="text-slate-500 block text-[10px] uppercase font-mono">Pass Number</span>
-                        <span className="text-[#05BFE0] font-mono font-bold">{regTicketId}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block text-[10px] uppercase font-mono">Institution</span>
-                        <span className="text-slate-300">{regForm.campus}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block text-[10px] uppercase font-mono">Date & Time</span>
-                        <span className="text-slate-300">Oct 15, 2026 • 8:00 AM – 5:00 PM</span>
+                        <span className="text-amber-400 font-mono font-bold">{regTicketId}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-3 border-t border-white/10 text-xs font-mono text-slate-400">
-                      <span>Venue: T.I.P. Anniversary Hall</span>
-                      <span className="text-emerald-400 font-semibold">VALIDATED</span>
+                      <span>Venue: T.I.P. QC Anniversary Hall</span>
+                      <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>VALIDATED PASS</span>
+                      </span>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] font-mono">
+                      <span className="flex items-center gap-1.5 font-medium text-emerald-400">
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Registration Confirmed</span>
+                      </span>
+                      <span className="flex items-center gap-1 text-[#05BFE0] font-medium">
+                        <Database className="w-3.5 h-3.5 shrink-0" />
+                        <span>Official Attendee Pass</span>
+                      </span>
                     </div>
                   </div>
 
@@ -1365,7 +1497,7 @@ export const TechXSummit2026: React.FC = () => {
                       href={getGoogleCalendarUrl()}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold border border-white/15 flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold border border-white/15 flex items-center justify-center gap-2 transition"
                     >
                       <CalendarPlus className="w-4 h-4 text-[#05BFE0]" />
                       <span>Add to Calendar</span>
@@ -1375,7 +1507,7 @@ export const TechXSummit2026: React.FC = () => {
                         setIsRegistered(false);
                         setIsRegisterModalOpen(false);
                       }}
-                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#05BFE0] hover:bg-[#05BFE0]/90 text-white text-xs font-bold shadow-md"
+                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#05BFE0] hover:bg-[#05BFE0]/90 text-white text-xs font-bold shadow-md cursor-pointer transition"
                     >
                       Done
                     </button>
@@ -1389,3 +1521,5 @@ export const TechXSummit2026: React.FC = () => {
     </div>
   );
 };
+
+export default TechXSummit2026;

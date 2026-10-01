@@ -38,6 +38,7 @@ import PageVerticalDeck from './pages/PageVerticalDeck';
 import JoinMembership from './pages/JoinMembership';
 import GMMTechXSummit2026 from './pages/GMMTechXSummit2026';
 import { TechXSummit2026 } from './pages/TechXSummit2026';
+import { TechXRSVPMonitor } from './pages/TechXRSVPMonitor';
 import { TechXParticipantQA } from './pages/qa/TechXParticipantQA';
 import { TechXHostQA } from './pages/qa/TechXHostQA';
 import { TechXLiveQA } from './pages/qa/TechXLiveQA';
@@ -1096,6 +1097,8 @@ function App() {
     normalizedPath === '/v' || 
     normalizedPath.includes('techxsummit2026') ||
     normalizedPath.includes('techx-summit-2026') ||
+    normalizedPath.includes('techx-rsvp') ||
+    normalizedPath.includes('techxrsvp') ||
     normalizedPath.includes('teckxq') ||
     normalizedPath.includes('techxq') ||
     normalizedPath.includes('q&a') ||
@@ -1139,6 +1142,12 @@ function App() {
           <Route path="/TechXSummit2026" element={<PageTransition><TechXSummit2026 /></PageTransition>} />
           <Route path="/techxsummit2026" element={<PageTransition><TechXSummit2026 /></PageTransition>} />
           <Route path="/techx-summit-2026" element={<PageTransition><TechXSummit2026 /></PageTransition>} />
+          
+          {/* TechX Attendee Registry & RSVP Monitor */}
+          <Route path="/TechX-RSVP" element={<PageTransition><TechXRSVPMonitor /></PageTransition>} />
+          <Route path="/techx-rsvp" element={<PageTransition><TechXRSVPMonitor /></PageTransition>} />
+          <Route path="/techxrsvp" element={<PageTransition><TechXRSVPMonitor /></PageTransition>} />
+          <Route path="/TechXRSVP" element={<PageTransition><TechXRSVPMonitor /></PageTransition>} />
           
           {/* TechX Interactive Q&A System */}
           {/* 1. Participant Page (Primary: /techx-qa, with legacy aliases) */}

@@ -9,44 +9,67 @@ export default async function handler(
   }
 
   const formData = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
-  const NEW_TECHX_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwZjUcC7UNIPniLLt4YncpwNXOFx42UkZCb8A8ATtYjAMBj-jz1OEnbvyM4Uu54PfhhnA/exec';
-  const isTechX = formData?.source === 'GMM@TechXSummit2026' || (typeof formData?.event === 'string' && formData.event.includes('Tech'));
-  let techxUrl = process.env.GOOGLE_SHEETS_TECHX_WEBHOOK_URL;
-  if (!techxUrl || techxUrl.includes('AKfycbx6JpS4WkG99mA8dbryWxKWyJ2ZPXmtbSmXGhAGwLjq') || techxUrl.endsWith('/dev')) {
-    techxUrl = NEW_TECHX_WEBHOOK_URL;
-  }
-  const defaultUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL || process.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
+  
+  // Dedicated Official Webhook URLs
+  const OFFICIAL_RSVP_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwZjUcC7UNIPniLLt4YncpwNXOFx42UkZCb8A8ATtYjAMBj-jz1OEnbvyM4Uu54PfhhnA/exec';
+  const OFFICIAL_STUDENT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw-2p-1fL-_IDixg68VgGLggXMtbxvEFSGj2mwkTUVawmYn4GE5iBPV_BuZl4AvukO5/exec';
 
-  let webhookUrl = (isTechX && techxUrl) ? techxUrl : (techxUrl || defaultUrl);
-  if (webhookUrl && webhookUrl.endsWith('/dev')) {
-    webhookUrl = webhookUrl.replace(/\/dev$/, '/exec');
-  }
+  const isStudent = formData?.attendeeType === 'student' || 
+                    !!formData?.studentNumber || 
+                    !!formData?.course;
 
-  if (!webhookUrl) {
-    console.warn('GOOGLE_SHEETS_WEBHOOK_URL is not defined in environment variables. Simulating RSVP save.');
-    return response.status(200).json({ 
-      success: true, 
-      simulated: true,
-      message: 'RSVP recorded in preview mode (Webhook URL not configured)' 
-    });
+  let webhookUrl = OFFICIAL_RSVP_WEBHOOK_URL;
+
+  if (isStudent) {
+    let studentUrl = process.env.VITE_GOOGLE_SHEETS_STUDENT_WEBHOOK_URL || process.env.GOOGLE_SHEETS_STUDENT_WEBHOOK_URL;
+    if (!studentUrl || studentUrl.endsWith('/dev') || studentUrl.includes('AKfycbx6JpS4WkG99mA8dbryWxKWyJ2ZPXmtbSmXGhAGwLjq')) {
+      studentUrl = OFFICIAL_STUDENT_WEBHOOK_URL;
+    }
+    webhookUrl = studentUrl;
+  } else {
+    // For Industry RSVP: only accept explicitly configured RSVP URL, otherwise use OFFICIAL_RSVP_WEBHOOK_URL
+    let rsvpUrl = process.env.VITE_GMM_RSVP_WEBHOOK_URL;
+    if (!rsvpUrl || 
+        rsvpUrl.includes('AKfycbx6JpS4WkG99mA8dbryWxKWyJ2ZPXmtbSmXGhAGwLjq') || 
+        rsvpUrl.includes('AKfycbz7oOcamc48Hpcq4oF272ODDILWXWC0T0RUi3teB75mQEnPGA4qaFdUG4lFQfMKm3A') || 
+        rsvpUrl.includes('BuZl4AvukO5') || 
+        rsvpUrl.endsWith('/dev')) {
+      rsvpUrl = OFFICIAL_RSVP_WEBHOOK_URL;
+    }
+    webhookUrl = rsvpUrl;
   }
 
   try {
-    const formData = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
-    
-    // Map companion data so it fills columns H, I, J on both new and existing Apps Script versions
-    if (formData && formData.hasCompanion !== undefined) {
+    // Map companion data and alternative field names for maximum sheet version compatibility
+    if (formData && !isStudent) {
       const isComp = (formData.hasCompanion === 'yes' || formData.hasCompanion === 'Yes' || formData.hasCompanion === true || formData.hasCompanion === 'true');
       formData.hasCompanion = isComp ? 'Yes' : 'No';
+      formData.companionName = isComp ? (formData.companionName || 'N/A') : 'None';
+      formData.companionDesignation = isComp ? (formData.companionDesignation || formData.companionTitle || 'N/A') : 'None';
+      formData.companionTitle = formData.companionDesignation;
+
+      // Legacy columns H, I, J compatibility for older sheets
       formData.event = isComp ? 'Yes' : 'No';
       formData.eventName = isComp ? 'Yes' : 'No';
-      formData.venue = isComp ? (formData.companionName || 'N/A') : 'None';
-      formData.source = isComp ? (formData.companionDesignation || formData.companionTitle || 'N/A') : 'None';
+      formData.venue = isComp ? formData.companionName : 'None';
+      formData.source = isComp ? formData.companionDesignation : 'None';
+
+      // Alternate field names
+      formData.company = formData.companyName || formData.company || 'N/A';
+      formData.organization = formData.companyName || formData.organization || 'N/A';
+      formData.name = formData.fullName || formData.name || 'N/A';
+      formData.position = formData.jobTitle || formData.position || 'N/A';
+      formData.title = formData.jobTitle || formData.title || 'N/A';
+      formData.mobileNumber = formData.mobile || formData.mobileNumber || formData.phone || 'N/A';
+      formData.phone = formData.mobileNumber;
+      formData.workEmail = formData.email || formData.workEmail || 'N/A';
+      formData.attendance = 'yes';
     }
 
     // Convert the incoming body to URLSearchParams for Google Apps Script
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(formData || {})) {
+      if (key === 'webhookUrl') continue;
       params.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
     }
 
@@ -56,6 +79,7 @@ export default async function handler(
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
+      redirect: 'follow'
     });
 
     const result = await googleResponse.text();

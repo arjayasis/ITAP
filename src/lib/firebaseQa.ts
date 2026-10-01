@@ -14,8 +14,7 @@ import {
   orderBy,
   writeBatch,
   getDocs,
-  getDoc,
-  getDocFromServer
+  getDoc
 } from 'firebase/firestore';
 import { QAQuestion, FirebaseQAConfig } from '../types/qa';
 import appletConfig from '../../firebase-applet-config.json';
@@ -192,10 +191,11 @@ export function initFirebase(): { app: FirebaseApp | null; db: Firestore | null;
       firebaseApp = getApp();
     }
 
-    // Initialize Firestore with ignoreUndefinedProperties and target database ID
+    // Initialize Firestore with ignoreUndefinedProperties, experimentalAutoDetectLongPolling and target database ID
     try {
       firestoreDb = initializeFirestore(firebaseApp, {
-        ignoreUndefinedProperties: true
+        ignoreUndefinedProperties: true,
+        experimentalAutoDetectLongPolling: true
       }, dbId);
     } catch (initErr) {
       // If already initialized, retrieve instance
@@ -213,59 +213,40 @@ export function initFirebase(): { app: FirebaseApp | null; db: Firestore | null;
       }).catch(() => {});
     }
 
-    // Attach real-time collection query and immediate server fetch
+    // Attach real-time collection query
     if (!unsubscribeFirestore) {
       const colRef = collection(firestoreDb, 'techx_questions');
       const q = query(colRef, orderBy('createdAt', 'desc'));
 
-      // 1. Immediate fetch from Cloud Firestore server
-      getDocs(q).then((snapshot) => {
-        const list: QAQuestion[] = [];
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data() as QAQuestion;
-          list.push({
-            ...data,
-            id: docSnap.id
+      unsubscribeFirestore = onSnapshot(
+        q, 
+        (snapshot) => {
+          const list: QAQuestion[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as QAQuestion;
+            list.push({
+              ...data,
+              id: docSnap.id
+            });
           });
-        });
-        if (list.length > 0) {
           saveLocalQuestions(list);
+          setConnectionState('connected');
+        }, 
+        (err) => {
+          // If network is transitioning or backend is temporarily unreachable, Firestore operates in offline mode
+          if (err?.code === 'unavailable') {
+            console.warn('Cloud Firestore backend offline or reconnecting; operating in resilient offline mode.');
+          } else {
+            console.warn('Firestore onSnapshot notice:', err);
+            setConnectionState('error');
+          }
         }
-        setConnectionState('connected');
-        console.log(`📡 Fetched ${list.length} question(s) from Cloud Firestore (${dbId})`);
-      }).catch((fetchErr) => {
-        console.warn('Initial Firestore getDocs warning:', fetchErr);
-      });
-
-      // 2. Continuous real-time synchronization
-      unsubscribeFirestore = onSnapshot(q, (snapshot) => {
-        const list: QAQuestion[] = [];
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data() as QAQuestion;
-          list.push({
-            ...data,
-            id: docSnap.id
-          });
-        });
-        saveLocalQuestions(list);
-        setConnectionState('connected');
-      }, (err) => {
-        console.error('Firestore onSnapshot error:', err);
-        setConnectionState('error');
-      });
+      );
     }
 
-    // Test server connection as recommended
-    if (typeof window !== 'undefined') {
-      getDocFromServer(doc(firestoreDb, 'test', 'connection')).catch(() => {
-        // Expected test doc miss, but confirms network path
-      });
-    }
-
-    console.log(`⚡ Firebase Firestore connected to itap-db [${dbId}]`);
     return { app: firebaseApp, db: firestoreDb, isLive: true };
   } catch (err) {
-    console.error('Failed to initialize Firebase Firestore SDK:', err);
+    console.warn('Notice initializing Firebase Firestore SDK:', err);
     setConnectionState('error');
     return { app: null, db: null, isLive: false };
   }
