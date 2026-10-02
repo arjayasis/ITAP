@@ -1118,7 +1118,7 @@ export const TechXSummit2026: React.FC = () => {
          ========================================================================= */}
       <AnimatePresence>
         {isRegisterModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -1130,13 +1130,13 @@ export const TechXSummit2026: React.FC = () => {
 
             {/* Modal Dialog */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-[#0F1438] border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl z-10 my-8 overflow-hidden text-left"
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-2xl bg-[#0F1438] border border-white/15 rounded-3xl shadow-2xl z-10 flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden text-left"
             >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-6">
+              {/* Header - Stays pinned at top so title and close button are always visible */}
+              <div className="flex items-start justify-between p-5 sm:p-7 pb-4 border-b border-white/10 shrink-0 bg-[#0F1438]/95 backdrop-blur-sm z-10">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#05BFE0]/20 text-[#05BFE0] uppercase font-bold">
@@ -1148,19 +1148,22 @@ export const TechXSummit2026: React.FC = () => {
                     {isRegistered ? 'Your Student Delegate Pass' : 'Reserve Your TechX Summit Student Pass'}
                   </h3>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0 ml-3">
                   <button
+                    type="button"
                     onClick={() => setIsRegisterModalOpen(false)}
                     className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    title="Close modal"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
-              {/* Body */}
-              {!isRegistered ? (
-                <form onSubmit={handleRegistrationSubmit} className="space-y-4">
+              {/* Scrollable Body Content */}
+              <div className="overflow-y-auto flex-1 p-5 sm:p-7 pt-4 space-y-4">
+                {!isRegistered ? (
+                  <form onSubmit={handleRegistrationSubmit} className="space-y-4">
                   {/* Student Name: Separate First Name and Last Name */}
                   <div>
                     <label className="text-xs text-slate-300 font-semibold uppercase tracking-wider font-mono block mb-1.5 flex items-center gap-1.5">
@@ -1528,6 +1531,7 @@ export const TechXSummit2026: React.FC = () => {
                   </div>
                 </div>
               )}
+              </div>
             </motion.div>
           </div>
         )}
