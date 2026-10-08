@@ -99,7 +99,7 @@ export const TechXLiveQA: React.FC = () => {
           <div className="h-6 w-px bg-slate-800 hidden sm:block" />
           <div className="hidden sm:flex flex-col">
             <span className="text-xs font-mono font-bold tracking-widest text-cyan-400 uppercase">
-              ITAP 2nd GMM 2026
+              TechX Summit 2026
             </span>
             <span className="text-[11px] text-slate-400">
               Interactive Audience Q&A Session
