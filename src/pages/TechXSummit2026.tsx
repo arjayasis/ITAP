@@ -46,7 +46,13 @@ import {
   Database,
   RefreshCw,
   AlertTriangle,
-  UserCheck
+  UserCheck,
+  Cpu,
+  Coffee,
+  Gift,
+  ShieldAlert,
+  Filter,
+  CheckCircle
 } from 'lucide-react';
 import { memberCompanies } from '../data/membersData';
 import { submitRegistrationToFirestore } from '../lib/firebaseQa';
@@ -113,10 +119,15 @@ export const TechXSummit2026: React.FC = () => {
   const [regTicketId, setRegTicketId] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // Program Flow Schedule State
+  const [programTrackFilter, setProgramTrackFilter] = useState<'all' | 'morning' | 'afternoon'>('all');
+  const [programSearch, setProgramSearch] = useState('');
+  const [copiedSchedule, setCopiedSchedule] = useState(false);
+
   // Track active scroll section
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ['hero', 'expect', 'why-join', 'date', 'sponsors', 'register'];
+      const sections = ['hero', 'expect', 'why-join', 'program-flow', 'date', 'sponsors', 'register'];
       const scrollPos = window.scrollY + 200;
 
       for (const section of sections) {
@@ -161,6 +172,43 @@ export const TechXSummit2026: React.FC = () => {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);
     }
+  };
+
+  // Copy Complete Program Flow Schedule to Clipboard
+  const handleCopySchedule = () => {
+    const text = `TECHX SUMMIT 2026 — PROGRAM FLOW
+CREATING WHAT’S NEXT
+Date: October 15, 2026 | Thursday (8:00 AM – 5:00 PM)
+Venue: Anniversary Hall, T.I.P. Quezon City
+
+MORNING PLENARY:
+• 8:00 – 8:30 AM : REGISTRATION, NETWORKING & TECHX SUMMIT OPENS
+• 8:30 – 8:40 AM : INVOCATION & PHILIPPINE NATIONAL ANTHEM
+• 8:40 – 9:00 AM : WELCOME REMARKS
+• 9:00 – 9:10 AM : ACKNOWLEDGMENT OF GUESTS, PARTNERS & SPONSORS
+• 9:10 – 9:25 AM : RIBBON CUTTING & OFFICIAL OPENING
+• 9:25 – 9:55 AM : OPENING KEYNOTE: THE FUTURE OF TECH CAREERS IN THE AI ERA
+• 9:55 – 10:25 AM : AI-READY DATA CENTERS: POWERING THE FUTURE OF INTELLIGENT TECHNOLOGY
+• 10:25 – 10:45 AM : NETWORKING BREAK
+• 10:45 – 11:15 AM : CYBERSECURITY LIVE: ATTACK & DEFENSE SIMULATION
+• 11:15 AM – 12:00 PM : FIRESIDE CHAT / OPEN Q&A WITH INDUSTRY EXPERTS
+• 12:00 – 1:30 PM : LUNCH BREAK
+
+AFTERNOON | HANDS-ON & LEADERSHIP TRACKS:
+• 1:30 – 2:00 PM : LEADING HIGH-PERFORMING TECH TEAMS: COMMUNICATION, COLLABORATION & LEADERSHIP
+• 2:00 – 2:45 PM : TRUST BY DESIGN: IT GOVERNANCE, RISK & RESPONSIBLE TECHNOLOGY
+• 2:45 – 3:05 PM : NETWORKING BREAK
+• 3:05 – 3:50 PM : HUMAN IN THE LEAD: THE EVOLVING AI LANDSCAPE
+• 3:50 – 4:35 PM : INDUSTRY ROUNDTABLE: THE NEXT 5 YEARS OF TECH CAREERS
+• 4:35 – 5:00 PM : CLOSING REMARKS, RECOGNITION & RAFFLE DRAW
+
+EXPLORE TECHNOLOGY. CONNECT WITH INNOVATORS.
+NETWORK • COLLABORATE • INNOVATE • TRANSFORM
+Official Summit Link: ${window.location.origin}/TechXSummit2026`;
+
+    navigator.clipboard.writeText(text);
+    setCopiedSchedule(true);
+    setTimeout(() => setCopiedSchedule(false), 2500);
   };
 
   // Google Calendar Link generator (8:00 AM to 5:00 PM PHT)
@@ -366,6 +414,184 @@ export const TechXSummit2026: React.FC = () => {
     }
   ];
 
+  // Official Program Flow Schedule (From Official TechX Summit 2026 Poster)
+  const morningPlenaryFlow = [
+    {
+      id: 'm1',
+      time: '8:00 – 8:30 AM',
+      title: 'REGISTRATION, NETWORKING & TECHX SUMMIT OPENS',
+      category: 'Registration & Welcome',
+      badge: 'Arrival',
+      badgeColor: 'border-cyan-500/30 text-cyan-300 bg-cyan-950/50',
+      description: 'Check-in, badge assignment, student registration verification, and early morning delegate networking.'
+    },
+    {
+      id: 'm2',
+      time: '8:30 – 8:40 AM',
+      title: 'INVOCATION & PHILIPPINE NATIONAL ANTHEM',
+      category: 'Ceremonial Opening',
+      badge: 'Ceremony',
+      badgeColor: 'border-blue-500/30 text-blue-300 bg-blue-950/40',
+      description: 'Solemn invocation followed by the Philippine National Anthem.'
+    },
+    {
+      id: 'm3',
+      time: '8:40 – 9:00 AM',
+      title: 'WELCOME REMARKS',
+      category: 'Official Welcome',
+      badge: 'Remarks',
+      badgeColor: 'border-indigo-500/30 text-indigo-300 bg-indigo-950/40',
+      description: 'Welcome addresses by ITAP Board of Directors and T.I.P. Academic Leadership.'
+    },
+    {
+      id: 'm4',
+      time: '9:00 – 9:10 AM',
+      title: 'ACKNOWLEDGMENT OF GUESTS, PARTNERS & SPONSORS',
+      category: 'Honors & Partners',
+      badge: 'Honors',
+      badgeColor: 'border-slate-500/30 text-slate-300 bg-slate-900/60',
+      description: 'Special acknowledgment of institutional partners, university deans, and member tech sponsors.'
+    },
+    {
+      id: 'm5',
+      time: '9:10 – 9:25 AM',
+      title: 'RIBBON CUTTING & OFFICIAL OPENING',
+      category: 'Grand Ceremony',
+      badge: 'Ribbon Cutting',
+      badgeColor: 'border-pink-500/40 text-pink-300 bg-pink-950/50',
+      description: 'Formal ribbon-cutting ceremony and symbolic launch of TechX Summit 2026: Creating What’s Next.'
+    },
+    {
+      id: 'm6',
+      time: '9:25 – 9:55 AM',
+      title: 'OPENING KEYNOTE: THE FUTURE OF TECH CAREERS IN THE AI ERA',
+      category: 'Keynote Address',
+      badge: 'Keynote',
+      badgeColor: 'border-cyan-400/50 text-cyan-300 bg-cyan-950/70',
+      description: 'Strategic keynote exploring generative AI impact, career transformation, and industry demand in the AI decade.'
+    },
+    {
+      id: 'm7',
+      time: '9:55 – 10:25 AM',
+      title: 'AI-READY DATA CENTERS: POWERING THE FUTURE OF INTELLIGENT TECHNOLOGY',
+      category: 'Cloud & Infrastructure',
+      badge: 'AI & Data Centers',
+      badgeColor: 'border-purple-500/30 text-purple-300 bg-purple-950/50',
+      description: 'Next-gen data centers, high-performance computing architectures, green power, and low-latency AI clusters.'
+    },
+    {
+      id: 'm8',
+      time: '10:25 – 10:45 AM',
+      title: 'NETWORKING BREAK',
+      category: 'Networking & Showcase',
+      badge: 'Break',
+      badgeColor: 'border-emerald-500/30 text-emerald-300 bg-emerald-950/40',
+      description: 'Mid-morning coffee break, industry booths exhibition, and delegate interaction.'
+    },
+    {
+      id: 'm9',
+      time: '10:45 – 11:15 AM',
+      title: 'CYBERSECURITY LIVE: ATTACK & DEFENSE SIMULATION',
+      category: 'Live Cyber Simulation',
+      badge: 'Live Demo',
+      badgeColor: 'border-rose-500/40 text-rose-300 bg-rose-950/60',
+      description: 'High-stakes real-time attack simulation vs. active cyber defense mitigation by industry threat specialists.'
+    },
+    {
+      id: 'm10',
+      time: '11:15 AM – 12:00 PM',
+      title: 'FIRESIDE CHAT / OPEN Q&A WITH INDUSTRY EXPERTS',
+      category: 'Interactive Q&A Session',
+      badge: 'Live Q&A',
+      badgeColor: 'border-amber-500/40 text-amber-300 bg-amber-950/50',
+      description: 'Open-floor interactive fireside chat where student delegates ask unvarnished questions directly to tech executives.'
+    },
+    {
+      id: 'm11',
+      time: '12:00 – 1:30 PM',
+      title: 'LUNCH BREAK',
+      category: 'Intermission & Exhibits',
+      badge: 'Lunch',
+      badgeColor: 'border-emerald-500/30 text-emerald-300 bg-emerald-950/40',
+      description: 'Delegates lunch, sponsor networking booths, interactive showcase, and photo wall sessions.'
+    }
+  ];
+
+  const afternoonTracksFlow = [
+    {
+      id: 'a1',
+      time: '1:30 – 2:00 PM',
+      title: 'LEADING HIGH-PERFORMING TECH TEAMS: COMMUNICATION, COLLABORATION & LEADERSHIP',
+      category: 'Leadership & Teamwork',
+      badge: 'Leadership Track',
+      badgeColor: 'border-purple-500/40 text-purple-300 bg-purple-950/50',
+      description: 'Practices of high-velocity software and infrastructure teams, modern management styles, and cross-discipline collaboration.'
+    },
+    {
+      id: 'a2',
+      time: '2:00 – 2:45 PM',
+      title: 'TRUST BY DESIGN: IT GOVERNANCE, RISK & RESPONSIBLE TECHNOLOGY',
+      category: 'Governance & Ethics',
+      badge: 'Governance & Risk',
+      badgeColor: 'border-indigo-500/40 text-indigo-300 bg-indigo-950/50',
+      description: 'Designing trustworthy systems, data privacy compliance, cybersecurity resilience, and ethical AI development.'
+    },
+    {
+      id: 'a3',
+      time: '2:45 – 3:05 PM',
+      title: 'NETWORKING BREAK',
+      category: 'Networking & Refreshments',
+      badge: 'Break',
+      badgeColor: 'border-emerald-500/30 text-emerald-300 bg-emerald-950/40',
+      description: 'Afternoon coffee break, career advice corner, and portfolio consultations.'
+    },
+    {
+      id: 'a4',
+      time: '3:05 – 3:50 PM',
+      title: 'HUMAN IN THE LEAD: THE EVOLVING AI LANDSCAPE',
+      category: 'Frontier AI & Human Agency',
+      badge: 'Human & AI',
+      badgeColor: 'border-cyan-400/40 text-cyan-300 bg-cyan-950/60',
+      description: 'Ensuring human discernment, creativity, and ethics stay at the helm of rapid AI automation.'
+    },
+    {
+      id: 'a5',
+      time: '3:50 – 4:35 PM',
+      title: 'INDUSTRY ROUNDTABLE: THE NEXT 5 YEARS OF TECH CAREERS',
+      category: 'Executive Panel',
+      badge: 'Roundtable',
+      badgeColor: 'border-pink-500/40 text-pink-300 bg-pink-950/50',
+      description: 'Cross-industry panel of CTOs, engineering directors, and tech founders forecasting high-demand roles from 2026 to 2031.'
+    },
+    {
+      id: 'a6',
+      time: '4:35 – 5:00 PM',
+      title: 'CLOSING REMARKS, RECOGNITION & RAFFLE DRAW',
+      category: 'Closing & Grand Raffle',
+      badge: 'Raffle & Awards',
+      badgeColor: 'border-amber-400/50 text-amber-300 bg-amber-950/60',
+      description: 'Awarding certificate plaques, delegate recognition, student partner appreciation, and grand raffle draw prizes.'
+    }
+  ];
+
+  // Filtered Program Flow sessions
+  const programQuery = programSearch.trim().toLowerCase();
+  const filteredMorningFlow = morningPlenaryFlow.filter((item) =>
+    !programQuery ||
+    item.title.toLowerCase().includes(programQuery) ||
+    item.time.toLowerCase().includes(programQuery) ||
+    item.category.toLowerCase().includes(programQuery) ||
+    item.badge.toLowerCase().includes(programQuery)
+  );
+  const filteredAfternoonFlow = afternoonTracksFlow.filter((item) =>
+    !programQuery ||
+    item.title.toLowerCase().includes(programQuery) ||
+    item.time.toLowerCase().includes(programQuery) ||
+    item.category.toLowerCase().includes(programQuery) ||
+    item.badge.toLowerCase().includes(programQuery)
+  );
+  const totalFilteredSessions = filteredMorningFlow.length + filteredAfternoonFlow.length;
+
   // Filtered Sponsor Companies
   const filteredSponsors = memberCompanies.filter((company) =>
     company.name.toLowerCase().includes(sponsorSearch.toLowerCase())
@@ -444,8 +670,17 @@ export const TechXSummit2026: React.FC = () => {
               </a>
             </div>
 
-            {/* Right Action: Register CTA Button */}
-            <div className="flex items-center shrink-0 ml-2">
+            {/* Right Actions */}
+            <div className="flex items-center shrink-0 ml-2 gap-2 sm:gap-3">
+              <button
+                onClick={() => scrollToSection('program-flow')}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-mono font-bold text-xs text-[#05BFE0] border border-[#05BFE0]/30 hover:bg-[#05BFE0]/10 hover:border-[#05BFE0] transition-all"
+                title="View Full Summit Program Flow"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Program Flow</span>
+              </button>
+
               <button
                 id="header-register-btn"
                 onClick={() => setIsRegisterModalOpen(true)}
@@ -523,6 +758,15 @@ export const TechXSummit2026: React.FC = () => {
               >
                 <span>REGISTER NOW</span>
                 <ArrowRight className="w-5 h-5" />
+              </button>
+
+              <button
+                id="hero-program-flow-btn"
+                onClick={() => scrollToSection('program-flow')}
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-base text-[#05BFE0] border border-[#05BFE0]/40 bg-[#05BFE0]/10 hover:bg-[#05BFE0]/20 hover:border-[#05BFE0] transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2 shadow-lg shadow-[#05BFE0]/10"
+              >
+                <Clock className="w-4 h-4 text-[#05BFE0]" />
+                <span>Program Flow</span>
               </button>
 
               <button
@@ -761,6 +1005,429 @@ export const TechXSummit2026: React.FC = () => {
                 </motion.div>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          PROGRAM FLOW SECTION (Official TechX Summit 2026 Schedule)
+         ========================================================================= */}
+      <section id="program-flow" className="py-20 md:py-28 relative border-t border-white/10 bg-[#070B24] overflow-hidden">
+        {/* Subtle Cyber Neon Grid & Radial Lighting */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[450px] bg-[#05BFE0]/15 rounded-full blur-[140px]" />
+          <div className="absolute top-1/2 -left-40 w-[600px] h-[500px] bg-[#4F17A8]/20 rounded-full blur-[160px]" />
+          <div className="absolute bottom-10 right-0 w-[550px] h-[500px] bg-[#FF2D8D]/15 rounded-full blur-[160px]" />
+          <div
+            className="absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage: `linear-gradient(to right, #05BFE0 1px, transparent 1px), linear-gradient(to bottom, #FF2D8D 1px, transparent 1px)`,
+              backgroundSize: '48px 48px'
+            }}
+          />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          {/* Top Brand Header Lockup matching Official Poster */}
+          <div className="text-center max-w-4xl mx-auto mb-12 sm:mb-16">
+            {/* Co-host Logos */}
+            <div className="flex items-center justify-center gap-4 sm:gap-6 mb-5">
+              <img
+                src={ASSETS.itapLogoWhite}
+                alt="ITAP"
+                className="h-8 sm:h-10 w-auto object-contain opacity-90 hover:opacity-100 transition-opacity"
+                referrerPolicy="no-referrer"
+              />
+              <div className="h-6 w-px bg-white/20" />
+              <img
+                src={ASSETS.tipLogo}
+                alt="T.I.P."
+                className="h-8 sm:h-10 w-auto object-contain opacity-90 hover:opacity-100 transition-opacity"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+
+            {/* TechX Logo Title */}
+            <div className="flex justify-center mb-3">
+              <img
+                src={ASSETS.techxFullWhite}
+                alt="TECHX SUMMIT 2026"
+                className="h-10 sm:h-14 md:h-16 w-auto object-contain drop-shadow-[0_0_25px_rgba(5,191,224,0.3)]"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+
+            {/* Tagline */}
+            <p className="text-sm sm:text-lg md:text-xl font-mono font-extrabold tracking-[0.3em] uppercase text-white mb-5">
+              CREATING WHAT’S <span className="text-[#FF2D8D] drop-shadow-[0_0_12px_rgba(255,45,141,0.6)]">NEXT</span>
+            </p>
+
+            {/* Event Date & Location Capsule */}
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 sm:gap-4 px-4 sm:px-6 py-2 rounded-full bg-gradient-to-r from-[#05BFE0]/15 via-white/5 to-[#FF2D8D]/15 border border-[#05BFE0]/40 text-xs sm:text-sm font-mono text-slate-200 shadow-lg shadow-[#05BFE0]/10 mb-8">
+              <span className="flex items-center gap-1.5 font-bold text-white">
+                <Calendar className="w-3.5 h-3.5 text-[#05BFE0]" />
+                OCTOBER 15, 2026
+              </span>
+              <span className="text-white/40 hidden sm:inline">|</span>
+              <span className="flex items-center gap-1.5 font-bold text-white">
+                <MapPin className="w-3.5 h-3.5 text-[#FF2D8D]" />
+                ANNIVERSARY HALL, TIP QC
+              </span>
+            </div>
+
+            {/* Glowing Cyber Title Banner: PROGRAM FLOW */}
+            <div className="relative inline-block my-2">
+              <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-[#05BFE0] via-[#A87FFB] to-[#FF2D8D] opacity-75 blur-md" />
+              <div className="relative px-8 sm:px-16 py-3.5 sm:py-4.5 rounded-2xl bg-[#070B24] border-2 border-[#05BFE0] shadow-[0_0_30px_rgba(5,191,224,0.4)]">
+                <h2 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-widest text-white uppercase font-display drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
+                  PROGRAM FLOW
+                </h2>
+              </div>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-400 mt-4 max-w-2xl mx-auto">
+              Follow our official morning plenary and specialized afternoon tracks covering artificial intelligence, cybersecurity, cloud infrastructure, and tech leadership.
+            </p>
+          </div>
+
+          {/* Interactive Navigation, Filter & Search Bar */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-8 bg-[#06091A]/80 border border-white/10 rounded-2xl p-3 sm:p-4 backdrop-blur-xl shadow-xl">
+            {/* Track Filter Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:pb-0">
+              <button
+                onClick={() => setProgramTrackFilter('all')}
+                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-mono font-bold transition-all shrink-0 ${
+                  programTrackFilter === 'all'
+                    ? 'bg-gradient-to-r from-[#05BFE0] to-[#0494AE] text-slate-950 shadow-md shadow-[#05BFE0]/25'
+                    : 'text-slate-300 hover:text-white bg-white/5 hover:bg-white/10'
+                }`}
+              >
+                All Sessions (17)
+              </button>
+              <button
+                onClick={() => setProgramTrackFilter('morning')}
+                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-mono font-bold transition-all shrink-0 ${
+                  programTrackFilter === 'morning'
+                    ? 'bg-[#05BFE0] text-slate-950 shadow-md shadow-[#05BFE0]/25'
+                    : 'text-slate-300 hover:text-[#05BFE0] bg-white/5 hover:bg-white/10'
+                }`}
+              >
+                Morning Plenary (11)
+              </button>
+              <button
+                onClick={() => setProgramTrackFilter('afternoon')}
+                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-mono font-bold transition-all shrink-0 ${
+                  programTrackFilter === 'afternoon'
+                    ? 'bg-[#FF2D8D] text-white shadow-md shadow-[#FF2D8D]/25'
+                    : 'text-slate-300 hover:text-[#FF2D8D] bg-white/5 hover:bg-white/10'
+                }`}
+              >
+                Afternoon Tracks (6)
+              </button>
+            </div>
+
+            {/* Search Input & Action Utilities */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="relative flex-1 md:w-64">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={programSearch}
+                  onChange={(e) => setProgramSearch(e.target.value)}
+                  placeholder="Filter sessions..."
+                  className="w-full pl-9 pr-7 py-2 rounded-xl text-xs sm:text-sm bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-[#05BFE0]"
+                />
+                {programSearch && (
+                  <button
+                    onClick={() => setProgramSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Copy Schedule Button */}
+              <button
+                onClick={handleCopySchedule}
+                className="px-3 py-2 rounded-xl text-xs font-mono font-semibold bg-white/5 hover:bg-white/10 border border-white/15 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all shrink-0"
+                title="Copy schedule as clean text"
+              >
+                {copiedSchedule ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400 hidden sm:inline">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-[#05BFE0]" />
+                    <span className="hidden sm:inline">Copy Schedule</span>
+                  </>
+                )}
+              </button>
+
+              {/* Add to Calendar Link */}
+              <a
+                href={getGoogleCalendarUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 rounded-xl text-xs font-mono font-semibold bg-white/5 hover:bg-white/10 border border-white/15 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all shrink-0"
+                title="Add TechX Summit 2026 to Google Calendar"
+              >
+                <CalendarPlus className="w-3.5 h-3.5 text-[#FF2D8D]" />
+                <span className="hidden sm:inline">Calendar</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Search Result Feedback if active */}
+          {programSearch.trim() && (
+            <div className="mb-6 flex items-center justify-between text-xs font-mono text-slate-400 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
+              <span>Showing {totalFilteredSessions} sessions matching "{programSearch}"</span>
+              <button onClick={() => setProgramSearch('')} className="text-[#05BFE0] hover:underline">
+                Clear filter
+              </button>
+            </div>
+          )}
+
+          {/* =========================================================================
+              TRACK 1: MORNING PLENARY
+             ========================================================================= */}
+          {(programTrackFilter === 'all' || programTrackFilter === 'morning') && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="relative mb-12"
+            >
+              {/* Outer Cyber Box Container with Glowing Cyan Border */}
+              <div className="relative rounded-3xl bg-[#060A22]/90 border-2 border-[#05BFE0]/60 shadow-[0_0_35px_rgba(5,191,224,0.18)] backdrop-blur-xl overflow-hidden">
+                {/* Tech corner accent notches */}
+                <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-[#05BFE0]/30 to-transparent pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-12 h-12 bg-gradient-to-tr from-[#05BFE0]/20 to-transparent pointer-events-none" />
+
+                {/* Section Header Badge on Top Left */}
+                <div className="p-4 sm:p-6 pb-2 sm:pb-3 flex items-center justify-between border-b border-[#05BFE0]/20 bg-gradient-to-r from-[#05BFE0]/15 via-transparent to-transparent">
+                  <div className="inline-flex items-center gap-2.5 px-4 sm:px-6 py-2 rounded-xl bg-gradient-to-r from-[#05BFE0] to-[#0494AE] text-slate-950 font-display font-extrabold text-sm sm:text-base tracking-wider uppercase shadow-md shadow-[#05BFE0]/30">
+                    <Sparkles className="w-4 h-4 text-slate-950" />
+                    <span>MORNING PLENARY</span>
+                  </div>
+                  <span className="text-xs font-mono text-cyan-300 hidden sm:inline-flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-[#05BFE0]" />
+                    8:00 AM – 1:30 PM PHT
+                  </span>
+                </div>
+
+                {/* Session Rows List */}
+                <div className="divide-y divide-white/5">
+                  {filteredMorningFlow.length === 0 ? (
+                    <div className="py-8 text-center text-slate-400 text-sm font-mono">
+                      No morning sessions found for "{programSearch}".
+                    </div>
+                  ) : (
+                    filteredMorningFlow.map((item, index) => {
+                      const isKeynoteOrDemo = item.badge === 'Keynote' || item.badge === 'Live Demo' || item.badge === 'Ribbon Cutting';
+                      return (
+                        <div
+                          key={item.id}
+                          className={`group px-4 sm:px-8 py-3.5 sm:py-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 transition-all duration-200 ${
+                            isKeynoteOrDemo ? 'bg-[#05BFE0]/[0.03] hover:bg-[#05BFE0]/10' : 'hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          {/* Time & Trace Lockup */}
+                          <div className="flex items-center gap-3 sm:gap-4 shrink-0 sm:w-56 md:w-64">
+                            <span className="w-2 h-2 rounded-full bg-[#05BFE0] group-hover:scale-125 transition-transform shrink-0 shadow-[0_0_8px_#05BFE0]" />
+                            <span className="font-mono font-bold text-xs sm:text-sm md:text-base text-[#05BFE0] tracking-wide whitespace-nowrap">
+                              {item.time}
+                            </span>
+                          </div>
+
+                          {/* Session Title */}
+                          <div className="flex-1 pr-2">
+                            <h3 className="font-bold text-xs sm:text-sm md:text-base text-white uppercase tracking-wide leading-snug group-hover:text-cyan-200 transition-colors">
+                              {item.title}
+                            </h3>
+                            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 line-clamp-1 group-hover:line-clamp-none transition-all">
+                              {item.description}
+                            </p>
+                          </div>
+
+                          {/* Category Badge Pill */}
+                          <div className="shrink-0 flex items-center gap-2 mt-1 sm:mt-0">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-mono font-medium border ${item.badgeColor}`}>
+                              {item.badge}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* =========================================================================
+              TRACK 2: AFTERNOON | HANDS-ON & LEADERSHIP TRACKS
+             ========================================================================= */}
+          {(programTrackFilter === 'all' || programTrackFilter === 'afternoon') && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="relative mb-14"
+            >
+              {/* Outer Cyber Box Container with Glowing Magenta/Purple Border */}
+              <div className="relative rounded-3xl bg-[#060A22]/90 border-2 border-[#FF2D8D]/60 shadow-[0_0_35px_rgba(255,45,141,0.18)] backdrop-blur-xl overflow-hidden">
+                {/* Tech corner accent notches */}
+                <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-[#FF2D8D]/30 to-transparent pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-12 h-12 bg-gradient-to-tr from-[#FF2D8D]/20 to-transparent pointer-events-none" />
+
+                {/* Section Header Badge on Top Left */}
+                <div className="p-4 sm:p-6 pb-2 sm:pb-3 flex items-center justify-between border-b border-[#FF2D8D]/20 bg-gradient-to-r from-[#FF2D8D]/15 via-transparent to-transparent">
+                  <div className="inline-flex items-center gap-2.5 px-4 sm:px-6 py-2 rounded-xl bg-gradient-to-r from-[#FF2D8D] to-[#8A1550] text-white font-display font-extrabold text-sm sm:text-base tracking-wider uppercase shadow-md shadow-[#FF2D8D]/30">
+                    <Zap className="w-4 h-4 text-white" />
+                    <span>AFTERNOON | HANDS-ON & LEADERSHIP TRACKS</span>
+                  </div>
+                  <span className="text-xs font-mono text-pink-300 hidden sm:inline-flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-[#FF2D8D]" />
+                    1:30 PM – 5:00 PM PHT
+                  </span>
+                </div>
+
+                {/* Session Rows List */}
+                <div className="divide-y divide-white/5">
+                  {filteredAfternoonFlow.length === 0 ? (
+                    <div className="py-8 text-center text-slate-400 text-sm font-mono">
+                      No afternoon sessions found for "{programSearch}".
+                    </div>
+                  ) : (
+                    filteredAfternoonFlow.map((item, index) => {
+                      const isHighPriority = item.badge === 'Roundtable' || item.badge === 'Human & AI' || item.badge === 'Raffle & Awards';
+                      return (
+                        <div
+                          key={item.id}
+                          className={`group px-4 sm:px-8 py-3.5 sm:py-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 transition-all duration-200 ${
+                            isHighPriority ? 'bg-[#FF2D8D]/[0.03] hover:bg-[#FF2D8D]/10' : 'hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          {/* Time & Trace Lockup */}
+                          <div className="flex items-center gap-3 sm:gap-4 shrink-0 sm:w-56 md:w-64">
+                            <span className="w-2 h-2 rounded-full bg-[#05BFE0] group-hover:scale-125 transition-transform shrink-0 shadow-[0_0_8px_#05BFE0]" />
+                            <span className="font-mono font-bold text-xs sm:text-sm md:text-base text-[#05BFE0] tracking-wide whitespace-nowrap">
+                              {item.time}
+                            </span>
+                          </div>
+
+                          {/* Session Title */}
+                          <div className="flex-1 pr-2">
+                            <h3 className="font-bold text-xs sm:text-sm md:text-base text-white uppercase tracking-wide leading-snug group-hover:text-pink-200 transition-colors">
+                              {item.title}
+                            </h3>
+                            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 line-clamp-1 group-hover:line-clamp-none transition-all">
+                              {item.description}
+                            </p>
+                          </div>
+
+                          {/* Category Badge Pill */}
+                          <div className="shrink-0 flex items-center gap-2 mt-1 sm:mt-0">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-mono font-medium border ${item.badgeColor}`}>
+                              {item.badge}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* =========================================================================
+              BOTTOM BANNER: EXPLORE TECHNOLOGY. CONNECT WITH INNOVATORS.
+              4 PILLARS: NETWORK | COLLABORATE | INNOVATE | TRANSFORM
+             ========================================================================= */}
+          <div className="mt-12 rounded-3xl p-6 sm:p-10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 relative overflow-hidden backdrop-blur-xl">
+            {/* Ambient Backlight */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#05BFE0]/10 via-transparent to-[#FF2D8D]/10 pointer-events-none" />
+
+            {/* Main Bottom Tagline */}
+            <div className="text-center mb-8 relative z-10">
+              <h3 className="text-lg sm:text-2xl md:text-3xl font-extrabold tracking-widest uppercase text-white font-mono drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                EXPLORE TECHNOLOGY. CONNECT WITH INNOVATORS.
+              </h3>
+            </div>
+
+            {/* 4 Pillars Lockup */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 relative z-10">
+              {/* 1. NETWORK */}
+              <div className="group p-4 sm:p-5 rounded-2xl bg-slate-900/60 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-950/20 transition-all text-center flex flex-col items-center">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-300 mb-3 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(5,191,224,0.2)]">
+                  <Network className="w-6 h-6" />
+                </div>
+                <span className="font-mono font-black text-sm sm:text-base tracking-widest text-cyan-300 uppercase">
+                  NETWORK
+                </span>
+                <span className="text-[11px] text-slate-400 mt-1">
+                  Connect with peer delegates & IT executives
+                </span>
+              </div>
+
+              {/* 2. COLLABORATE */}
+              <div className="group p-4 sm:p-5 rounded-2xl bg-slate-900/60 border border-purple-500/30 hover:border-purple-400 hover:bg-purple-950/20 transition-all text-center flex flex-col items-center">
+                <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-300 mb-3 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(168,127,251,0.2)]">
+                  <Cpu className="w-6 h-6" />
+                </div>
+                <span className="font-mono font-black text-sm sm:text-base tracking-widest text-purple-300 uppercase">
+                  COLLABORATE
+                </span>
+                <span className="text-[11px] text-slate-400 mt-1">
+                  Cross-pollinate engineering ideas & projects
+                </span>
+              </div>
+
+              {/* 3. INNOVATE */}
+              <div className="group p-4 sm:p-5 rounded-2xl bg-slate-900/60 border border-pink-500/30 hover:border-pink-400 hover:bg-pink-950/20 transition-all text-center flex flex-col items-center">
+                <div className="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-pink-300 mb-3 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(255,45,141,0.2)]">
+                  <Lightbulb className="w-6 h-6" />
+                </div>
+                <span className="font-mono font-black text-sm sm:text-base tracking-widest text-pink-300 uppercase">
+                  INNOVATE
+                </span>
+                <span className="text-[11px] text-slate-400 mt-1">
+                  Discover autonomous tools & AI breakthroughs
+                </span>
+              </div>
+
+              {/* 4. TRANSFORM */}
+              <div className="group p-4 sm:p-5 rounded-2xl bg-slate-900/60 border border-blue-500/30 hover:border-blue-400 hover:bg-blue-950/20 transition-all text-center flex flex-col items-center">
+                <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-300 mb-3 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                  <Zap className="w-6 h-6" />
+                </div>
+                <span className="font-mono font-black text-sm sm:text-base tracking-widest text-blue-300 uppercase">
+                  TRANSFORM
+                </span>
+                <span className="text-[11px] text-slate-400 mt-1">
+                  Accelerate your professional trajectory
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Register Bar at bottom */}
+            <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-300">
+              <span className="text-slate-400">
+                Official TechX Summit 2026 • T.I.P. Anniversary Hall
+              </span>
+              <button
+                onClick={() => setIsRegisterModalOpen(true)}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] text-white font-bold hover:shadow-lg hover:shadow-[#FF2D8D]/30 transition-all flex items-center gap-2"
+              >
+                <span>Reserve Pass Now</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -1072,6 +1739,14 @@ export const TechXSummit2026: React.FC = () => {
                 <li className="flex items-start gap-2">
                   <MapPin className="w-3.5 h-3.5 text-[#FF2D8D] shrink-0 mt-0.5" />
                   <span>Anniversary Hall, T.I.P. Quezon City (938 Aurora Blvd, Cubao)</span>
+                </li>
+                <li className="pt-1.5">
+                  <button
+                    onClick={() => scrollToSection('program-flow')}
+                    className="inline-flex items-center gap-1.5 text-xs font-mono text-[#05BFE0] hover:text-white transition-colors"
+                  >
+                    <span>View Full Program Flow ↓</span>
+                  </button>
                 </li>
               </ul>
             </div>
