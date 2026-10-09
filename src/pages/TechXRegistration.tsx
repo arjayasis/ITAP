@@ -17,7 +17,8 @@ import {
   Sparkles,
   Download,
   Printer,
-  ChevronDown
+  ChevronDown,
+  FlipHorizontal
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import QRCode from 'qrcode';
@@ -58,6 +59,14 @@ export const TechXRegistration: React.FC = () => {
   const [cameraPermissionDenied, setCameraPermissionDenied] = useState<boolean>(false);
   const [isProcessingScan, setIsProcessingScan] = useState<boolean>(false);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
+  const [mirrorCamera, setMirrorCamera] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('techx_scanner_mirror');
+      return stored !== null ? stored === 'true' : true; // default to true (mirrored)
+    } catch {
+      return true;
+    }
+  });
 
   // Scan Outcome Results
   const [scanResult, setScanResult] = useState<{
@@ -610,8 +619,35 @@ export const TechXRegistration: React.FC = () => {
             {/* VIEW 1: BIG QR CAMERA SCANNER */}
             {centerMode === 'scanner' && (
               <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
-                {/* HTML5 QR Code Mount Node */}
-                <div id={scannerContainerId} className="w-full h-full" />
+                {/* HTML5 QR Code Mount Node (mirrored horizontally via CSS for front/operator camera) */}
+                <div
+                  id={scannerContainerId}
+                  className={`w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover ${
+                    mirrorCamera ? 'camera-mirrored [&_video]:-scale-x-100' : ''
+                  }`}
+                />
+
+                {/* Mirror Toggle Badge (Top Right of viewfinder) */}
+                {scannerActive && !scanResult && (
+                  <button
+                    onClick={() => {
+                      const next = !mirrorCamera;
+                      setMirrorCamera(next);
+                      try {
+                        localStorage.setItem('techx_scanner_mirror', String(next));
+                      } catch {}
+                    }}
+                    title={mirrorCamera ? 'Camera Mirrored (Click to unmirror)' : 'Camera Unmirrored (Click to mirror)'}
+                    className={`absolute top-3 right-3 z-20 px-2.5 py-1 rounded-lg text-[11px] font-mono font-medium flex items-center gap-1.5 backdrop-blur-md border transition cursor-pointer ${
+                      mirrorCamera
+                        ? 'bg-[#00d2ff]/20 border-[#00d2ff]/40 text-[#00d2ff] hover:bg-[#00d2ff]/30'
+                        : 'bg-black/60 border-white/20 text-slate-300 hover:text-white hover:bg-black/80'
+                    }`}
+                  >
+                    <FlipHorizontal className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{mirrorCamera ? 'Mirrored' : 'Normal'}</span>
+                  </button>
+                )}
 
                 {/* Laser Sweep Animation when scanning is active */}
                 {scannerActive && !scanResult && (

@@ -51,3 +51,17 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Mirror QR Code camera video feed */
+#techx-big-qr-reader.camera-mirrored video {
+  transform: scaleX(-1) !important;
+  -webkit-transform: scaleX(-1) !important;
+}
+
+#techx-big-qr-reader video {
+  object-fit: cover !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 1rem;
+}
+
