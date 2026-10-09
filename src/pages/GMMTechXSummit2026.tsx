@@ -32,7 +32,7 @@ import {
   MessageSquarePlus
 } from 'lucide-react';
 import { memberCompanies } from '../data/membersData';
-import { submitRegistrationToFirestore } from '../lib/firebaseQa';
+import { submitRegistrationToFirestore, checkDuplicateRegistration } from '../lib/firebaseQa';
 
 interface FormData {
   fullName: string;
@@ -68,6 +68,7 @@ export const GMMTechXSummit2026: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -157,7 +158,30 @@ export const GMMTechXSummit2026: React.FC = () => {
     });
 
     if (Object.keys(newErrors).length === 0) {
+      setDuplicateError(null);
       setIsSubmitting(true);
+
+      // STRICT DEDUPLICATION ENFORCEMENT: Do not accept duplicate entry
+      try {
+        const dupCheck = await checkDuplicateRegistration({
+          attendeeType: 'industry',
+          email: formData.email.trim(),
+          fullName: formData.fullName.trim(),
+          mobile: formData.mobile.trim(),
+          companyName: formData.companyName.trim()
+        });
+
+        if (dupCheck.isDuplicate) {
+          const msg = dupCheck.reason || 'This email address has already RSVP\'d for the ITAP 2nd GMM. Duplicate registrations are not accepted.';
+          setDuplicateError(msg);
+          setErrors((prev) => ({ ...prev, email: msg }));
+          setIsSubmitting(false);
+          return;
+        }
+      } catch (checkErr) {
+        console.warn('Duplicate pre-check warning:', checkErr);
+      }
+
       const generatedId = `TECHX-ITAP-${Math.floor(100000 + Math.random() * 900000)}`;
       setRegistrationId(generatedId);
 
@@ -199,7 +223,20 @@ export const GMMTechXSummit2026: React.FC = () => {
       const activeWebhook = OFFICIAL_RSVP_WEBHOOK;
 
       try {
-        // 1. Direct Google Sheets send (client-side guarantee)
+        // 1. Save to Firebase Firestore (itap-db) with duplicate enforcement
+        try {
+          await submitRegistrationToFirestore(payload);
+        } catch (fbErr: any) {
+          console.warn('Firestore registration error:', fbErr);
+          if (fbErr?.message?.includes('Duplicate') || fbErr?.message?.includes('already')) {
+            setDuplicateError(fbErr.message);
+            setErrors((prev) => ({ ...prev, email: fbErr.message }));
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
+        // 2. Direct Google Sheets send (client-side guarantee)
         try {
           const formParams = new URLSearchParams();
           Object.entries(payload).forEach(([k, v]) => formParams.append(k, String(v)));
@@ -216,7 +253,7 @@ export const GMMTechXSummit2026: React.FC = () => {
           console.warn('Direct Google Sheets send notice:', directErr);
         }
 
-        // 2. Also send to serverless API proxy as backup
+        // 3. Also send to serverless API proxy as backup
         try {
           await fetch('/api/submit-rsvp', {
             method: 'POST',
@@ -227,13 +264,6 @@ export const GMMTechXSummit2026: React.FC = () => {
           });
         } catch (err) {
           console.warn('Server route RSVP forward notice:', err);
-        }
-
-        // 3. Save to Firebase Firestore (itap-db)
-        try {
-          await submitRegistrationToFirestore(payload);
-        } catch (fbErr) {
-          console.warn('Firestore registration error:', fbErr);
         }
       } catch (error) {
         console.warn('RSVP stored in client state (network fallback):', error);
@@ -822,6 +852,19 @@ export const GMMTechXSummit2026: React.FC = () => {
                         </div>
 
                       </div>
+
+                      {/* Duplicate Entry Warning Banner */}
+                      {duplicateError && (
+                        <div className="p-4 rounded-xl bg-[#FF2D8D]/15 border border-[#FF2D8D]/40 text-white text-xs flex items-start gap-3">
+                          <AlertCircle className="w-5 h-5 text-[#FF2D8D] shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold text-[#FF2D8D] block uppercase tracking-wider text-[11px] font-mono">
+                              Duplicate Entry Not Accepted
+                            </span>
+                            <span className="text-slate-200 mt-0.5 block leading-relaxed">{duplicateError}</span>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Submit CTA Button */}
                       <button

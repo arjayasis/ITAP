@@ -52,10 +52,12 @@ import {
   Gift,
   ShieldAlert,
   Filter,
-  CheckCircle
+  CheckCircle,
+  MessageSquare,
+  Lock
 } from 'lucide-react';
 import { memberCompanies } from '../data/membersData';
-import { submitRegistrationToFirestore } from '../lib/firebaseQa';
+import { submitRegistrationToFirestore, checkDuplicateRegistration, isStudentRegistrationClosed } from '../lib/firebaseQa';
 import { submitStudentRegistrationToGoogleSheets } from '../lib/googleSheetsTechX';
 
 // Brand Assets
@@ -114,10 +116,27 @@ export const TechXSummit2026: React.FC = () => {
     privacyConsent: false
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [duplicateErrorMessage, setDuplicateErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
   const [regTicketId, setRegTicketId] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isRegistrationClosed, setIsRegistrationClosed] = useState(false);
+
+  // Quietly check registration capacity status on load and modal open (do not expose internal limits)
+  useEffect(() => {
+    isStudentRegistrationClosed()
+      .then((closed) => setIsRegistrationClosed(closed))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (isRegisterModalOpen) {
+      isStudentRegistrationClosed()
+        .then((closed) => setIsRegistrationClosed(closed))
+        .catch(() => {});
+    }
+  }, [isRegisterModalOpen]);
 
   // Program Flow Schedule State
   const [programTrackFilter, setProgramTrackFilter] = useState<'all' | 'morning' | 'afternoon'>('all');
@@ -258,9 +277,45 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
     e.preventDefault();
     if (!validateRegistration()) return;
 
+    setDuplicateErrorMessage(null);
     setIsSubmitting(true);
-    const ticketId = `TIP-TX-${Math.floor(100000 + Math.random() * 900000)}`;
     const fullName = `${regForm.firstName.trim()} ${regForm.middleName ? regForm.middleName.trim() + ' ' : ''}${regForm.lastName.trim()}`;
+
+    // CAPACITY ENFORCEMENT: Close registration when limit reached (without publicizing the restriction number)
+    try {
+      const closed = await isStudentRegistrationClosed();
+      if (closed) {
+        setIsRegistrationClosed(true);
+        const closedMessage = 'Registration for students is now closed as maximum capacity has been reached. Thank you for your interest in TechX Summit 2026.';
+        setDuplicateErrorMessage(closedMessage);
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (capErr) {
+      console.warn('Capacity check warning:', capErr);
+    }
+
+    // STRICT DEDUPLICATION ENFORCEMENT: Do not accept duplicate entry
+    try {
+      const dupCheck = await checkDuplicateRegistration({
+        attendeeType: 'student',
+        email: regForm.email.trim(),
+        fullName,
+        mobile: regForm.mobile.trim()
+      });
+
+      if (dupCheck.isDuplicate) {
+        const message = dupCheck.reason || 'This student email is already registered for TechX Summit 2026. Duplicate registrations are not accepted.';
+        setDuplicateErrorMessage(message);
+        setFormErrors((prev) => ({ ...prev, email: message }));
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (checkErr) {
+      console.warn('Duplicate pre-check warning:', checkErr);
+    }
+
+    const ticketId = `TIP-TX-${Math.floor(100000 + Math.random() * 900000)}`;
     const finalCollege = regForm.college === 'Others' 
       ? (customCollege.trim() ? `Others (${customCollege.trim()})` : 'Others')
       : regForm.college;
@@ -293,17 +348,23 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
     };
 
     try {
-      // 1. Submit student registration to Google Sheets in background via server proxy / Apps Script Webhook
-      await submitStudentRegistrationToGoogleSheets(registrationPayload);
-    } catch (sheetErr) {
-      console.warn('Google Sheets sync warning (non-blocking):', sheetErr);
+      // 1. Submit to Cloud Firestore first with strict duplicate protection
+      await submitRegistrationToFirestore(registrationPayload);
+    } catch (err: any) {
+      console.warn('Firestore registration error:', err);
+      if (err?.message?.includes('Duplicate') || err?.message?.includes('already registered')) {
+        setDuplicateErrorMessage(err.message);
+        setFormErrors((prev) => ({ ...prev, email: err.message }));
+        setIsSubmitting(false);
+        return;
+      }
     }
 
     try {
-      // 2. Submit to Cloud Firestore
-      await submitRegistrationToFirestore(registrationPayload);
-    } catch (err) {
-      console.warn('Fallback: stored locally', err);
+      // 2. Submit student registration to Google Sheets in background via server proxy / Apps Script Webhook
+      await submitStudentRegistrationToGoogleSheets(registrationPayload);
+    } catch (sheetErr) {
+      console.warn('Google Sheets sync warning (non-blocking):', sheetErr);
     }
 
     // 3. Save ticket locally for offline retrieval
@@ -672,9 +733,24 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
 
             {/* Right Actions */}
             <div className="flex items-center shrink-0 ml-2 gap-2 sm:gap-3">
+              {/* LIVE Q&A Portal Link */}
+              <Link
+                to="/techx-qa"
+                id="header-live-qa-btn"
+                className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2 rounded-xl font-mono font-bold text-xs text-white bg-[#FF2D8D]/15 border border-[#FF2D8D]/50 hover:bg-[#FF2D8D]/30 hover:border-[#FF2D8D] shadow-sm shadow-[#FF2D8D]/15 transition-all"
+                title="Join Summit Live Interactive Q&A"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF2D8D] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF2D8D]"></span>
+                </span>
+                <MessageSquare className="w-3.5 h-3.5 text-[#FF2D8D]" />
+                <span className="hidden xs:inline sm:inline">LIVE Q&A</span>
+              </Link>
+
               <button
                 onClick={() => scrollToSection('program-flow')}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-mono font-bold text-xs text-[#05BFE0] border border-[#05BFE0]/30 hover:bg-[#05BFE0]/10 hover:border-[#05BFE0] transition-all"
+                className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl font-mono font-bold text-xs text-[#05BFE0] border border-[#05BFE0]/30 hover:bg-[#05BFE0]/10 hover:border-[#05BFE0] transition-all"
                 title="View Full Summit Program Flow"
               >
                 <Clock className="w-3.5 h-3.5" />
@@ -684,11 +760,24 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
               <button
                 id="header-register-btn"
                 onClick={() => setIsRegisterModalOpen(true)}
-                className="relative group overflow-hidden px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] shadow-lg shadow-[#FF2D8D]/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 shrink-0"
+                className={`relative group overflow-hidden px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white ${
+                  isRegistrationClosed
+                    ? 'bg-slate-800/90 border border-slate-700 hover:bg-slate-700'
+                    : 'bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] shadow-lg shadow-[#FF2D8D]/25'
+                } transition-all transform hover:-translate-y-0.5 active:translate-y-0 shrink-0`}
               >
                 <span className="relative z-10 flex items-center gap-1.5">
-                  <span>Register Now</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  {isRegistrationClosed ? (
+                    <>
+                      <Lock className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Registration Closed</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Register Now</span>
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </>
+                  )}
                 </span>
               </button>
             </div>
@@ -749,16 +838,44 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 sm:mb-16"
+              className="flex flex-col sm:flex-row items-center justify-center gap-3.5 sm:gap-4 mb-12 sm:mb-16 flex-wrap"
             >
               <button
                 id="hero-register-primary-btn"
                 onClick={() => setIsRegisterModalOpen(true)}
-                className="w-full sm:w-auto px-10 py-4 rounded-2xl font-bold text-base text-white bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] shadow-xl shadow-[#FF2D8D]/30 transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2.5"
+                className={`w-full sm:w-auto px-9 py-4 rounded-2xl font-bold text-base text-white ${
+                  isRegistrationClosed
+                    ? 'bg-slate-800/95 border border-slate-700 hover:bg-slate-700'
+                    : 'bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] shadow-xl shadow-[#FF2D8D]/30'
+                } transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2.5 cursor-pointer`}
               >
-                <span>REGISTER NOW</span>
-                <ArrowRight className="w-5 h-5" />
+                {isRegistrationClosed ? (
+                  <>
+                    <Lock className="w-5 h-5 text-amber-400" />
+                    <span>REGISTRATION CLOSED</span>
+                  </>
+                ) : (
+                  <>
+                    <span>REGISTER NOW</span>
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
               </button>
+
+              {/* LIVE Q&A PORTAL LINK */}
+              <Link
+                to="/techx-qa"
+                id="hero-live-qa-btn"
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-base text-white border border-[#FF2D8D]/60 bg-gradient-to-r from-[#FF2D8D]/25 via-[#4F17A8]/20 to-[#05BFE0]/25 hover:bg-[#FF2D8D]/35 hover:border-[#FF2D8D] transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2.5 shadow-lg shadow-[#FF2D8D]/20"
+                title="Join TechX Summit Live Q&A"
+              >
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF2D8D] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF2D8D]"></span>
+                </span>
+                <MessageSquare className="w-5 h-5 text-[#FF2D8D]" />
+                <span>LIVE Q&A PORTAL</span>
+              </Link>
 
               <button
                 id="hero-program-flow-btn"
@@ -772,7 +889,7 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
               <button
                 id="hero-learn-more-btn"
                 onClick={() => scrollToSection('about')}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-base text-slate-200 border border-white/20 hover:border-[#05BFE0] hover:text-white hover:bg-white/10 transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2 shadow-lg"
+                className="w-full sm:w-auto px-7 py-4 rounded-2xl font-bold text-base text-slate-200 border border-white/20 hover:border-[#05BFE0] hover:text-white hover:bg-white/10 transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2 shadow-lg"
               >
                 <span>Learn More</span>
                 <ChevronDown className="w-4 h-4 text-[#05BFE0]" />
@@ -1005,6 +1122,56 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
                 </motion.div>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          LIVE SUMMIT Q&A FEATURE BANNER (Interactive real-time questions)
+         ========================================================================= */}
+      <section className="py-12 md:py-16 relative border-t border-white/10 bg-gradient-to-r from-[#0F1438] via-[#14103B] to-[#1A0B2E] overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="relative rounded-3xl border border-[#FF2D8D]/40 bg-[#0B0F2B]/85 backdrop-blur-xl p-6 sm:p-10 shadow-[0_0_50px_rgba(255,45,141,0.15)] overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-[#FF2D8D]/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#05BFE0]/15 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
+              <div className="max-w-2xl space-y-3">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FF2D8D]/15 border border-[#FF2D8D]/40 text-[#FF2D8D] text-xs font-mono font-bold uppercase tracking-wider">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF2D8D] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF2D8D]"></span>
+                  </span>
+                  <span>Interactive Summit Experience</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase font-display tracking-tight">
+                  TECHX LIVE <span className="bg-gradient-to-r from-[#FF2D8D] via-[#A87FFB] to-[#05BFE0] bg-clip-text text-transparent">Q&A PORTAL</span>
+                </h3>
+                <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                  Engage directly with keynote speakers, industry executives, and fireside chat panelists. Submit your questions live, upvote queries from fellow delegates, and watch highlighted inquiries appear real-time on the plenary main stage display.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-stretch sm:items-center gap-3.5 shrink-0">
+                <Link
+                  to="/techx-qa"
+                  className="px-8 py-4 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] shadow-xl shadow-[#FF2D8D]/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2.5"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>OPEN LIVE Q&A</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+
+                <Link
+                  to="/techx-live-qa"
+                  className="px-6 py-4 rounded-2xl font-mono font-bold text-xs text-[#05BFE0] bg-[#05BFE0]/10 border border-[#05BFE0]/40 hover:bg-[#05BFE0]/20 transition-all flex items-center justify-center gap-2"
+                  title="View Live Stage Display Screen"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Stage Display</span>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -1252,11 +1419,22 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
                             </p>
                           </div>
 
-                          {/* Category Badge Pill */}
-                          <div className="shrink-0 flex items-center gap-2 mt-1 sm:mt-0">
+                          {/* Category Badge Pill & Live Q&A Link */}
+                          <div className="shrink-0 flex items-center gap-2 mt-1 sm:mt-0 flex-wrap">
                             <span className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-mono font-medium border ${item.badgeColor}`}>
                               {item.badge}
                             </span>
+                            {item.id === 'm10' && (
+                              <Link
+                                to="/techx-qa"
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] sm:text-xs font-mono font-bold bg-[#FF2D8D]/20 border border-[#FF2D8D]/60 text-white hover:bg-[#FF2D8D] hover:text-white transition-all shadow-sm shadow-[#FF2D8D]/20 shrink-0"
+                                title="Open Live Q&A Portal for this session"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#FF2D8D] animate-ping" />
+                                <MessageSquare className="w-3.5 h-3.5 text-[#FF2D8D] group-hover:text-white" />
+                                <span>Enter Live Q&A →</span>
+                              </Link>
+                            )}
                           </div>
                         </div>
                       );
@@ -1677,15 +1855,36 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
             Register now and be part of TechX Summit 2026.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto">
             <button
               id="closing-cta-register-btn"
               onClick={() => setIsRegisterModalOpen(true)}
-              className="w-full sm:w-auto py-4 px-10 rounded-2xl font-bold text-base text-white bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] shadow-xl shadow-[#FF2D8D]/30 transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2 tracking-wide cursor-pointer"
+              className={`w-full sm:w-auto py-4 px-10 rounded-2xl font-bold text-base text-white ${
+                isRegistrationClosed
+                  ? 'bg-slate-800/95 border border-slate-700 hover:bg-slate-700'
+                  : 'bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] shadow-xl shadow-[#FF2D8D]/30'
+              } transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2 tracking-wide cursor-pointer`}
             >
-              <span>REGISTER NOW</span>
-              <ArrowRight className="w-5 h-5" />
+              {isRegistrationClosed ? (
+                <>
+                  <Lock className="w-5 h-5 text-amber-400" />
+                  <span>REGISTRATION CLOSED</span>
+                </>
+              ) : (
+                <>
+                  <span>REGISTER NOW</span>
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
             </button>
+
+            <Link
+              to="/techx-qa"
+              className="w-full sm:w-auto py-4 px-8 rounded-2xl font-bold text-base text-white border border-[#FF2D8D]/60 bg-[#FF2D8D]/15 hover:bg-[#FF2D8D]/30 hover:border-[#FF2D8D] transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2 shadow-lg shadow-[#FF2D8D]/15"
+            >
+              <MessageSquare className="w-5 h-5 text-[#FF2D8D]" />
+              <span>LIVE Q&A PORTAL</span>
+            </Link>
           </div>
         </div>
       </section>
@@ -1695,7 +1894,7 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
          ========================================================================= */}
       <footer className="py-14 border-t border-white/10 bg-[#06091A] text-slate-400 text-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
             {/* Col 1: Brand & Route */}
             <div className="space-y-4 md:col-span-1">
               <div className="flex items-center gap-3">
@@ -1751,7 +1950,38 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
               </ul>
             </div>
 
-            {/* Col 3: Contact & Secretariat */}
+            {/* Col 3: Interactive Live Q&A */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-mono uppercase tracking-widest text-[#FF2D8D] font-bold flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#FF2D8D] animate-ping" />
+                <span>Live Summit Q&A</span>
+              </h4>
+              <ul className="space-y-2 text-xs text-slate-400">
+                <li>
+                  <Link to="/techx-qa" className="flex items-center gap-2 text-white hover:text-[#FF2D8D] transition-colors font-medium">
+                    <MessageSquare className="w-3.5 h-3.5 text-[#FF2D8D]" />
+                    <span>Participant Q&A Portal</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/techx-live-qa" className="flex items-center gap-2 hover:text-[#05BFE0] transition-colors">
+                    <ExternalLink className="w-3.5 h-3.5 text-[#05BFE0]" />
+                    <span>Live Stage Display</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/techx-qa-host" className="flex items-center gap-2 hover:text-purple-300 transition-colors">
+                    <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Host Moderation Console</span>
+                  </Link>
+                </li>
+                <li className="pt-1 text-[11px] text-slate-500">
+                  Ask questions live during keynotes & fireside chats.
+                </li>
+              </ul>
+            </div>
+
+            {/* Col 4: Contact & Secretariat */}
             <div className="space-y-3">
               <h4 className="text-xs font-mono uppercase tracking-widest text-white font-bold">
                 Secretariat & Inquiries
@@ -1780,6 +2010,9 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
               <button onClick={() => scrollToSection('hero')} className="hover:text-slate-300 transition-colors">
                 Back to Top ↑
               </button>
+              <Link to="/techx-qa" className="hover:text-[#FF2D8D] text-slate-400 transition-colors">
+                Live Q&A
+              </Link>
               <Link to="/" className="hover:text-[#05BFE0] transition-colors">
                 ITAP Home
               </Link>
@@ -1787,6 +2020,23 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
           </div>
         </div>
       </footer>
+
+      {/* =========================================================================
+          FLOATING LIVE Q&A SHORTCUT (Available anywhere on /TechXSummit2026)
+         ========================================================================= */}
+      <Link
+        to="/techx-qa"
+        id="floating-live-qa-btn"
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full bg-[#0E1338]/95 border-2 border-[#FF2D8D] text-white shadow-2xl shadow-[#FF2D8D]/30 backdrop-blur-md hover:scale-105 hover:bg-[#FF2D8D] transition-all group"
+        title="Access TechX Live Q&A Portal"
+      >
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF2D8D] group-hover:bg-white opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF2D8D] group-hover:bg-white"></span>
+        </span>
+        <MessageSquare className="w-4 h-4 text-[#FF2D8D] group-hover:text-white transition-colors" />
+        <span className="font-mono font-bold text-xs uppercase tracking-wider">LIVE Q&A</span>
+      </Link>
 
       {/* =========================================================================
           REGISTRATION MODAL
@@ -1814,13 +2064,15 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
               <div className="flex items-start justify-between p-5 sm:p-7 pb-4 border-b border-white/10 shrink-0 bg-[#0F1438]/95 backdrop-blur-sm z-10">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#05BFE0]/20 text-[#05BFE0] uppercase font-bold">
-                      Student Registration
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded ${isRegistrationClosed && !isRegistered ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-[#05BFE0]/20 text-[#05BFE0]'} uppercase font-bold`}>
+                      {isRegistrationClosed && !isRegistered ? 'Registration Closed' : 'Student Registration'}
                     </span>
                     <span className="text-xs text-slate-400">• Exclusive to T.I.P. Students</span>
                   </div>
                   <h3 className="text-xl sm:text-2xl font-bold text-white font-display">
-                    {isRegistered ? 'Your Student Delegate Pass' : 'Reserve Your TechX Summit Student Pass'}
+                    {isRegistered 
+                      ? 'Your Student Delegate Pass' 
+                      : (isRegistrationClosed ? 'Student Registration is Closed' : 'Reserve Your TechX Summit Student Pass')}
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-3">
@@ -1837,7 +2089,56 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
 
               {/* Scrollable Body Content */}
               <div className="overflow-y-auto flex-1 p-5 sm:p-7 pt-4 space-y-4">
-                {!isRegistered ? (
+                {isRegistrationClosed && !isRegistered ? (
+                  <div className="py-8 px-2 text-center space-y-6">
+                    <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400 shadow-lg shadow-amber-500/10">
+                      <Lock className="w-8 h-8" />
+                    </div>
+
+                    <div className="space-y-2 max-w-md mx-auto">
+                      <h4 className="text-xl sm:text-2xl font-bold text-white font-display">
+                        Student Registration is Now Closed
+                      </h4>
+                      <p className="text-sm text-slate-300 leading-relaxed">
+                        Registration for TechX Summit 2026 has reached maximum capacity and is currently closed. Thank you to all students for the tremendous enthusiasm and interest!
+                      </p>
+                    </div>
+
+                    <div className="p-4 sm:p-5 rounded-2xl bg-white/5 border border-white/10 text-xs sm:text-sm text-slate-300 max-w-md mx-auto space-y-2.5 text-left">
+                      <p className="font-semibold text-white flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-[#05BFE0]" />
+                        <span>You can still experience the Summit:</span>
+                      </p>
+                      <ul className="list-disc list-inside space-y-1.5 text-slate-300 pl-1">
+                        <li>Participate in the interactive <strong>Live Q&A Portal</strong> during sessions</li>
+                        <li>Explore the full <strong>Summit Program Flow</strong> & expert keynotes</li>
+                        <li>Connect with participating <strong>ITAP tech industry partners</strong></li>
+                      </ul>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                      <Link
+                        to="/techx-qa"
+                        onClick={() => setIsRegisterModalOpen(false)}
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] shadow-lg shadow-[#FF2D8D]/25 flex items-center justify-center gap-2 transition"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Go to Live Q&A Portal</span>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsRegisterModalOpen(false);
+                          scrollToSection('program-flow');
+                        }}
+                        className="w-full sm:w-auto px-5 py-3 rounded-xl font-mono text-xs text-[#05BFE0] border border-[#05BFE0]/30 hover:bg-[#05BFE0]/10 transition"
+                      >
+                        View Program Flow
+                      </button>
+                    </div>
+                  </div>
+                ) : !isRegistered ? (
                   <form onSubmit={handleRegistrationSubmit} className="space-y-4">
                   {/* Student Name: Separate First Name and Last Name */}
                   <div>
@@ -2086,6 +2387,19 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
                     )}
                   </div>
 
+                  {/* Duplicate Entry Warning Banner */}
+                  {duplicateErrorMessage && (
+                    <div className="p-3.5 rounded-2xl bg-[#FF2D8D]/15 border border-[#FF2D8D]/40 text-white text-xs flex items-start gap-3 animate-shake">
+                      <AlertTriangle className="w-4 h-4 text-[#FF2D8D] shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-[#FF2D8D] block uppercase tracking-wider text-[11px] font-mono">
+                          Duplicate Entry Not Accepted
+                        </span>
+                        <span className="text-slate-200 mt-0.5 block leading-relaxed">{duplicateErrorMessage}</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="pt-3 flex items-center justify-end gap-3">
                     <button
                       type="button"
@@ -2185,6 +2499,14 @@ Official Summit Link: ${window.location.origin}/TechXSummit2026`;
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <Link
+                      to="/techx-qa"
+                      onClick={() => setIsRegisterModalOpen(false)}
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#FF2D8D] to-[#FF4E9E] hover:from-[#FF4E9E] hover:to-[#FF2D8D] text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Go to Live Q&A</span>
+                    </Link>
                     <a
                       href={getGoogleCalendarUrl()}
                       target="_blank"

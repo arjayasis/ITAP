@@ -13,7 +13,7 @@ import {
   Phone
 } from 'lucide-react';
 import { Footer } from '../App';
-import { submitRegistrationToFirestore } from '../lib/firebaseQa';
+import { submitRegistrationToFirestore, checkDuplicateRegistration } from '../lib/firebaseQa';
 
 interface FormData {
   company: string;
@@ -123,9 +123,29 @@ const GMM2026 = () => {
     setErrors(newErrors);
 
     if (!Object.values(newErrors).some(error => error !== undefined)) {
+      setSubmitError('');
       setIsSubmitting(true);
       
       try {
+        // STRICT DEDUPLICATION ENFORCEMENT: Do not accept duplicate entry
+        try {
+          const dupCheck = await checkDuplicateRegistration({
+            attendeeType: 'industry',
+            email: formData.email.trim(),
+            fullName: formData.name.trim(),
+            mobile: formData.mobile.trim(),
+            companyName: formData.company.trim()
+          });
+
+          if (dupCheck.isDuplicate) {
+            setIsSubmitting(false);
+            setSubmitError(dupCheck.reason || 'This email address has already RSVP\'d for the ITAP 2nd GMM. Duplicate registrations are not accepted.');
+            return;
+          }
+        } catch (checkErr) {
+          console.warn('Duplicate pre-check warning:', checkErr);
+        }
+
         const payload = {
           ...formData,
           fullName: formData.name.trim(),
@@ -140,7 +160,19 @@ const GMM2026 = () => {
 
         const OFFICIAL_RSVP_WEBHOOK = (import.meta as any).env?.VITE_GMM_RSVP_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbwZjUcC7UNIPniLLt4YncpwNXOFx42UkZCb8A8ATtYjAMBj-jz1OEnbvyM4Uu54PfhhnA/exec';
 
-        // 1. Direct fetch to Google Sheets webhook (mode: 'no-cors')
+        // 1. Save to Cloud Firestore with duplicate enforcement
+        try {
+          await submitRegistrationToFirestore(payload);
+        } catch (fbErr: any) {
+          console.warn('Firestore registration error:', fbErr);
+          if (fbErr?.message?.includes('Duplicate') || fbErr?.message?.includes('already')) {
+            setIsSubmitting(false);
+            setSubmitError(fbErr.message);
+            return;
+          }
+        }
+
+        // 2. Direct fetch to Google Sheets webhook (mode: 'no-cors')
         try {
           const formParams = new URLSearchParams();
           Object.entries(payload).forEach(([k, v]) => formParams.append(k, String(v)));
@@ -157,7 +189,7 @@ const GMM2026 = () => {
           console.warn('Direct Google Sheets send warning:', directErr);
         }
 
-        // 2. Also send to API proxy
+        // 3. Also send to API proxy
         try {
           await fetch('/api/submit-rsvp', {
             method: 'POST',
@@ -168,13 +200,6 @@ const GMM2026 = () => {
           });
         } catch (proxyErr) {
           console.warn('API proxy send notice:', proxyErr);
-        }
-
-        // 3. Save to Cloud Firestore
-        try {
-          await submitRegistrationToFirestore(payload);
-        } catch (fbErr) {
-          console.warn('Firestore registration error:', fbErr);
         }
 
         setIsSubmitted(true);

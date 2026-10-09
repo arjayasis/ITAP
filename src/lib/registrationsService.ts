@@ -174,6 +174,59 @@ export function normalizeAttendeeRecord(id: string, raw: any): AttendeeRecord {
 }
 
 /**
+ * Deduplicates attendee records so no duplicates appear in client state or exports.
+ * Preserves the earliest registration for each unique student / industry attendee.
+ */
+export function deduplicateAttendeeRecords(records: AttendeeRecord[]): AttendeeRecord[] {
+  // Sort ascending by createdAt to prioritize earlier registration
+  const sorted = [...records].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+  const kept: AttendeeRecord[] = [];
+
+  for (const record of sorted) {
+    const isStudent = record.attendeeType === 'student';
+    const email = (record.email || '').trim().toLowerCase();
+    const fullName = (record.fullName || `${record.firstName || ''} ${record.lastName || ''}`).trim().toLowerCase().replace(/\s+/g, ' ');
+    const mobileDigits = (record.mobile || '').replace(/\D/g, '').slice(-10);
+    const studentNum = (record.studentNumber || '').trim().toLowerCase();
+    const company = (record.companyName || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+    const isDup = kept.some((k) => {
+      if (k.attendeeType !== record.attendeeType) return false;
+      const kEmail = (k.email || '').trim().toLowerCase();
+      const kFullName = (k.fullName || `${k.firstName || ''} ${k.lastName || ''}`).trim().toLowerCase().replace(/\s+/g, ' ');
+      const kMobile = (k.mobile || '').replace(/\D/g, '').slice(-10);
+
+      if (isStudent) {
+        const kStudentNum = (k.studentNumber || '').trim().toLowerCase();
+        // 1. Same valid email
+        if (email && kEmail && email !== 'n/a' && email === kEmail) return true;
+        // 2. Same student ID
+        if (studentNum && kStudentNum && studentNum !== 'n/a' && studentNum === kStudentNum) return true;
+        // 3. Same name and phone
+        if (fullName && kFullName && fullName === kFullName && mobileDigits && kMobile && mobileDigits === kMobile) return true;
+      } else {
+        const kCompany = (k.companyName || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        // 1. Same valid email
+        if (email && kEmail && email !== 'n/a' && email === kEmail) return true;
+        // 2. Same name and company
+        if (fullName && kFullName && fullName === kFullName && company && kCompany && company === kCompany) return true;
+        // 3. Same name and phone
+        if (fullName && kFullName && fullName === kFullName && mobileDigits && kMobile && mobileDigits === kMobile) return true;
+      }
+      return false;
+    });
+
+    if (!isDup) {
+      kept.push(record);
+    }
+  }
+
+  // Return sorted descending (newest first for UI presentation)
+  return kept.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+/**
  * Loads cached attendees from localStorage.
  */
 export function getCachedAttendees(): AttendeeRecord[] {
@@ -182,7 +235,7 @@ export function getCachedAttendees(): AttendeeRecord[] {
     const raw = localStorage.getItem(STORAGE_KEY_REGISTRATIONS_CACHE);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) return deduplicateAttendeeRecords(parsed);
     }
   } catch (e) {
     console.warn('Error reading local attendee cache:', e);
@@ -208,7 +261,8 @@ export function getCachedAttendees(): AttendeeRecord[] {
 function saveCachedAttendees(records: AttendeeRecord[]): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(STORAGE_KEY_REGISTRATIONS_CACHE, JSON.stringify(records));
+    const deduplicated = deduplicateAttendeeRecords(records);
+    localStorage.setItem(STORAGE_KEY_REGISTRATIONS_CACHE, JSON.stringify(deduplicated));
   } catch (e) {
     console.warn('Error saving local attendee cache:', e);
   }
@@ -242,11 +296,11 @@ export function subscribeToRegistrations(
           records.push(normalizeAttendeeRecord(docSnap.id, docSnap.data()));
         });
 
-        // Sort descending by createdAt (latest first)
-        records.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        // Enforce strict deduplication across loaded documents
+        const cleanRecords = deduplicateAttendeeRecords(records);
 
-        saveCachedAttendees(records);
-        callback(records, 'firestore');
+        saveCachedAttendees(cleanRecords);
+        callback(cleanRecords, 'firestore');
       },
       (err) => {
         console.warn('Firestore onSnapshot registration notice:', err);
@@ -276,12 +330,102 @@ export async function fetchRegistrationsOnce(): Promise<AttendeeRecord[]> {
     snapshot.forEach((docSnap) => {
       records.push(normalizeAttendeeRecord(docSnap.id, docSnap.data()));
     });
-    records.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    saveCachedAttendees(records);
-    return records;
+    const cleanRecords = deduplicateAttendeeRecords(records);
+    saveCachedAttendees(cleanRecords);
+    return cleanRecords;
   } catch (err) {
     console.warn('Manual fetch error, returning cache:', err);
     return getCachedAttendees();
+  }
+}
+
+/**
+ * Scans Cloud Firestore, finds duplicate registrations, and removes them permanently.
+ */
+export async function cleanAndDeduplicateFirestoreRegistrations(): Promise<{
+  totalBefore: number;
+  deletedCount: number;
+  keptCount: number;
+}> {
+  const db = getRegistrationFirestore();
+  if (!db) {
+    return { totalBefore: 0, deletedCount: 0, keptCount: 0 };
+  }
+
+  try {
+    const colRef = collection(db, 'techx_registrations');
+    const snapshot = await getDocs(colRef);
+    const docs: { id: string; data: any }[] = [];
+    snapshot.forEach((d) => {
+      docs.push({ id: d.id, data: d.data() });
+    });
+
+    // Sort ascending by createdAt to preserve earliest registration
+    docs.sort((a, b) => (a.data.createdAt || 0) - (b.data.createdAt || 0));
+
+    const kept: any[] = [];
+    const toDelete: string[] = [];
+
+    for (const item of docs) {
+      const record = item.data;
+      const isStudent = record.attendeeType === 'student' || (!record.attendeeType && (record.studentNumber || item.id.startsWith('TIP-TX-')));
+      const email = (record.email || record.workEmail || '').trim().toLowerCase();
+      const fullName = (record.fullName || `${record.firstName || ''} ${record.lastName || ''}`).trim().toLowerCase().replace(/\s+/g, ' ');
+      const mobileDigits = (record.mobile || record.mobileNumber || record.phone || '').replace(/\D/g, '').slice(-10);
+      const studentNum = (record.studentNumber || record.idNumber || '').trim().toLowerCase();
+      const company = (record.companyName || record.company || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+      const match = kept.find((k) => {
+        const kIsStudent = k.attendeeType === 'student' || (!k.attendeeType && (k.studentNumber || k.id?.startsWith('TIP-TX-')));
+        if (isStudent !== kIsStudent) return false;
+        const kEmail = (k.email || k.workEmail || '').trim().toLowerCase();
+        const kFullName = (k.fullName || `${k.firstName || ''} ${k.lastName || ''}`).trim().toLowerCase().replace(/\s+/g, ' ');
+        const kMobile = (k.mobile || k.mobileNumber || k.phone || '').replace(/\D/g, '').slice(-10);
+
+        if (isStudent) {
+          const kStudentNum = (k.studentNumber || k.idNumber || '').trim().toLowerCase();
+          if (email && kEmail && email !== 'n/a' && email === kEmail) return true;
+          if (studentNum && kStudentNum && studentNum !== 'n/a' && studentNum === kStudentNum) return true;
+          if (fullName && kFullName && fullName === kFullName && mobileDigits && kMobile && mobileDigits === kMobile) return true;
+        } else {
+          const kCompany = (k.companyName || k.company || '').trim().toLowerCase().replace(/\s+/g, ' ');
+          if (email && kEmail && email !== 'n/a' && email === kEmail) return true;
+          if (fullName && kFullName && fullName === kFullName && company && kCompany && company === kCompany) return true;
+          if (fullName && kFullName && fullName === kFullName && mobileDigits && kMobile && mobileDigits === kMobile) return true;
+        }
+        return false;
+      });
+
+      if (match) {
+        toDelete.push(item.id);
+      } else {
+        kept.push({ id: item.id, ...record });
+      }
+    }
+
+    let deletedCount = 0;
+    for (const id of toDelete) {
+      try {
+        await deleteDoc(doc(db, 'techx_registrations', id));
+        deletedCount++;
+      } catch (delErr) {
+        console.error(`Failed to delete duplicate doc ${id}:`, delErr);
+      }
+    }
+
+    // Clear local cache so it refetches cleanly
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY_REGISTRATIONS_CACHE);
+    }
+
+    return {
+      totalBefore: docs.length,
+      deletedCount,
+      keptCount: kept.length
+    };
+  } catch (err) {
+    console.error('Error cleaning duplicates in Firestore:', err);
+    throw err;
   }
 }
 
@@ -339,11 +483,12 @@ export function getAttendeeStats(records: AttendeeRecord[]) {
  * Utility to export attendees to CSV format and trigger download.
  */
 export function exportAttendeesToCSV(records: AttendeeRecord[], type: 'all' | 'student' | 'industry') {
-  let filtered = records;
+  const cleanRecords = deduplicateAttendeeRecords(records);
+  let filtered = cleanRecords;
   if (type === 'student') {
-    filtered = records.filter((r) => r.attendeeType === 'student');
+    filtered = cleanRecords.filter((r) => r.attendeeType === 'student');
   } else if (type === 'industry') {
-    filtered = records.filter((r) => r.attendeeType === 'industry');
+    filtered = cleanRecords.filter((r) => r.attendeeType === 'industry');
   }
 
   if (filtered.length === 0) {

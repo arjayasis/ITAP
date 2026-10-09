@@ -39,6 +39,7 @@ import JoinMembership from './pages/JoinMembership';
 import GMMTechXSummit2026 from './pages/GMMTechXSummit2026';
 import { TechXSummit2026 } from './pages/TechXSummit2026';
 import { TechXRSVPMonitor } from './pages/TechXRSVPMonitor';
+import { TechXRegistration } from './pages/TechXRegistration';
 import { TechXParticipantQA } from './pages/qa/TechXParticipantQA';
 import { TechXHostQA } from './pages/qa/TechXHostQA';
 import { TechXLiveQA } from './pages/qa/TechXLiveQA';
@@ -1099,6 +1100,9 @@ function App() {
     normalizedPath.includes('techx-summit-2026') ||
     normalizedPath.includes('techx-rsvp') ||
     normalizedPath.includes('techxrsvp') ||
+    normalizedPath.includes('techx-registration') ||
+    normalizedPath.includes('techxregistration') ||
+    normalizedPath.includes('techx-checkin') ||
     normalizedPath.includes('teckxq') ||
     normalizedPath.includes('techxq') ||
     normalizedPath.includes('q&a') ||
@@ -1148,6 +1152,14 @@ function App() {
           <Route path="/techx-rsvp" element={<PageTransition><TechXRSVPMonitor /></PageTransition>} />
           <Route path="/techxrsvp" element={<PageTransition><TechXRSVPMonitor /></PageTransition>} />
           <Route path="/TechXRSVP" element={<PageTransition><TechXRSVPMonitor /></PageTransition>} />
+          
+          {/* TechX Event Check-in & Entrance Registration Station */}
+          <Route path="/techx-registration" element={<PageTransition><TechXRegistration /></PageTransition>} />
+          <Route path="/TechX-Registration" element={<PageTransition><TechXRegistration /></PageTransition>} />
+          <Route path="/techxregistration" element={<PageTransition><TechXRegistration /></PageTransition>} />
+          <Route path="/TechXRegistration" element={<PageTransition><TechXRegistration /></PageTransition>} />
+          <Route path="/techx-checkin" element={<PageTransition><TechXRegistration /></PageTransition>} />
+          <Route path="/techxcheckin" element={<PageTransition><TechXRegistration /></PageTransition>} />
           
           {/* TechX Interactive Q&A System */}
           {/* 1. Participant Page (Primary: /techx-qa, with legacy aliases) */}

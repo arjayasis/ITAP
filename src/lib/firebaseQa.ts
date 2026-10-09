@@ -352,21 +352,223 @@ export async function submitQuestion(
   return newQuestion;
 }
 
-// Submit attendee registration to Cloud Firestore
+// Check for duplicate attendee registration (Strict deduplication enforcement)
+export interface DuplicateCheckResult {
+  isDuplicate: boolean;
+  reason?: string;
+  existingId?: string;
+}
+
+export async function checkDuplicateRegistration(params: {
+  attendeeType: 'student' | 'industry';
+  email: string;
+  studentNumber?: string;
+  mobile?: string;
+  fullName?: string;
+  companyName?: string;
+}): Promise<DuplicateCheckResult> {
+  const { db, isLive } = initFirebase();
+  const normalizedEmail = (params.email || '').trim().toLowerCase();
+  const normalizedStudentNum = (params.studentNumber || '').trim().toLowerCase();
+  const normalizedMobile = (params.mobile || '').replace(/\D/g, '').slice(-10);
+  const normalizedFullName = (params.fullName || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const normalizedCompany = (params.companyName || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+  if (!isLive || !db) {
+    // Offline local storage cache check
+    try {
+      if (typeof window !== 'undefined') {
+        const cachedRaw = localStorage.getItem('techx_registrations_cache_v1');
+        if (cachedRaw) {
+          const records = JSON.parse(cachedRaw);
+          if (Array.isArray(records)) {
+            for (const r of records) {
+              const rIsStudent = r.attendeeType === 'student';
+              if (params.attendeeType === 'student' && rIsStudent) {
+                const rEmail = (r.email || '').trim().toLowerCase();
+                const rStudNum = (r.studentNumber || '').trim().toLowerCase();
+                if (normalizedEmail && rEmail && normalizedEmail === rEmail) {
+                  return { isDuplicate: true, reason: `Email (${params.email}) is already registered for TechX Summit 2026.`, existingId: r.registrationId || r.id };
+                }
+                if (normalizedStudentNum && rStudNum && normalizedStudentNum === rStudNum) {
+                  return { isDuplicate: true, reason: `Student ID Number (${params.studentNumber}) is already registered.`, existingId: r.registrationId || r.id };
+                }
+              } else if (params.attendeeType === 'industry' && !rIsStudent) {
+                const rEmail = (r.email || r.workEmail || '').trim().toLowerCase();
+                if (normalizedEmail && rEmail && normalizedEmail === rEmail) {
+                  return { isDuplicate: true, reason: `Email (${params.email}) has already RSVP'd for ITAP 2nd GMM.`, existingId: r.registrationId || r.id };
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    return { isDuplicate: false };
+  }
+
+  try {
+    const colRef = collection(db, 'techx_registrations');
+    const snapshot = await getDocs(colRef);
+    
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      const isStudentDoc = data.attendeeType === 'student' || (!data.attendeeType && (data.studentNumber || data.id?.startsWith('TIP-TX-')));
+      const dEmail = (data.email || data.workEmail || '').trim().toLowerCase();
+      const dStudNum = (data.studentNumber || data.idNumber || '').trim().toLowerCase();
+      const dMobile = (data.mobile || data.mobileNumber || data.phone || '').replace(/\D/g, '').slice(-10);
+      const dName = (data.fullName || data.name || `${data.firstName || ''} ${data.lastName || ''}`).trim().toLowerCase().replace(/\s+/g, ' ');
+      const dComp = (data.companyName || data.company || data.organization || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+      if (params.attendeeType === 'student') {
+        if (!isStudentDoc) continue;
+        // Check 1: Same email
+        if (normalizedEmail && dEmail && normalizedEmail === dEmail && dEmail !== 'n/a') {
+          return {
+            isDuplicate: true,
+            reason: `The email address "${params.email}" is already registered for TechX Summit 2026. Duplicate registrations are not accepted.`,
+            existingId: data.registrationId || docSnap.id
+          };
+        }
+        // Check 2: Same student ID
+        if (normalizedStudentNum && dStudNum && normalizedStudentNum === dStudNum && dStudNum !== 'n/a') {
+          return {
+            isDuplicate: true,
+            reason: `Student Number "${params.studentNumber}" is already registered. Duplicate registrations are not accepted.`,
+            existingId: data.registrationId || docSnap.id
+          };
+        }
+        // Check 3: Same Name AND same mobile
+        if (normalizedFullName && dName && normalizedFullName === dName && normalizedMobile && dMobile && normalizedMobile === dMobile) {
+          return {
+            isDuplicate: true,
+            reason: `A student registration for "${params.fullName}" with mobile ending in ...${normalizedMobile.slice(-4)} already exists. Duplicate registrations are not accepted.`,
+            existingId: data.registrationId || docSnap.id
+          };
+        }
+      } else {
+        // Industry / GMM
+        if (isStudentDoc) continue;
+        // Check 1: Same email
+        if (normalizedEmail && dEmail && normalizedEmail === dEmail && dEmail !== 'n/a') {
+          return {
+            isDuplicate: true,
+            reason: `The email address "${params.email}" has already RSVP'd for ITAP 2nd GMM. Duplicate submissions are not accepted.`,
+            existingId: data.registrationId || docSnap.id
+          };
+        }
+        // Check 2: Same Name and Company
+        if (normalizedFullName && dName && normalizedFullName === dName && normalizedCompany && dComp && normalizedCompany === dComp) {
+          return {
+            isDuplicate: true,
+            reason: `An RSVP for "${params.fullName}" from "${params.companyName}" is already registered. Duplicate submissions are not accepted.`,
+            existingId: data.registrationId || docSnap.id
+          };
+        }
+        // Check 3: Same Name and mobile
+        if (normalizedFullName && dName && normalizedFullName === dName && normalizedMobile && dMobile && normalizedMobile === dMobile) {
+          return {
+            isDuplicate: true,
+            reason: `An RSVP for "${params.fullName}" with contact number ending in ...${normalizedMobile.slice(-4)} is already registered. Duplicate submissions are not accepted.`,
+            existingId: data.registrationId || docSnap.id
+          };
+        }
+      }
+    }
+
+    return { isDuplicate: false };
+  } catch (err) {
+    console.warn('Error during duplicate check:', err);
+    return { isDuplicate: false };
+  }
+}
+
+// Capacity limit (internal enforcement: close registration when reached 700 students, not publicized)
+export const STUDENT_REGISTRATION_CAP = 700;
+
+export async function getStudentRegistrationCount(): Promise<number> {
+  const { db, isLive } = initFirebase();
+  if (!isLive || !db) {
+    try {
+      if (typeof window !== 'undefined') {
+        const cachedRaw = localStorage.getItem('techx_registrations_cache_v1');
+        if (cachedRaw) {
+          const records = JSON.parse(cachedRaw);
+          if (Array.isArray(records)) {
+            return records.filter(r => r.attendeeType === 'student' || (!r.attendeeType && (r.studentNumber || r.id?.startsWith('TIP-TX-')))).length;
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return 0;
+  }
+
+  try {
+    const colRef = collection(db, 'techx_registrations');
+    const snapshot = await getDocs(colRef);
+    let count = 0;
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      const isStudentDoc = data.attendeeType === 'student' || (!data.attendeeType && (data.studentNumber || data.id?.startsWith('TIP-TX-')));
+      if (isStudentDoc) {
+        count++;
+      }
+    }
+    return count;
+  } catch (err) {
+    console.warn('Error counting student registrations:', err);
+    return 0;
+  }
+}
+
+export async function isStudentRegistrationClosed(): Promise<boolean> {
+  try {
+    const count = await getStudentRegistrationCount();
+    return count >= STUDENT_REGISTRATION_CAP;
+  } catch {
+    return false;
+  }
+}
+
+// Submit attendee registration to Cloud Firestore (with strict duplicate protection and capacity cap)
 export async function submitRegistrationToFirestore(registration: any): Promise<void> {
   const { db, isLive } = initFirebase();
   if (isLive && db) {
-    try {
-      const regId = registration.registrationId || `REG-${Date.now()}`;
-      await setDoc(doc(db, 'techx_registrations', regId), {
-        ...registration,
-        id: regId,
-        createdAt: Date.now()
-      });
-      console.log('✅ Registration saved to Cloud Firestore:', regId);
-    } catch (err) {
-      console.error('❌ Firestore registration setDoc failed:', err);
+    const isStudent = registration.attendeeType === 'student' || 
+                      (!registration.attendeeType && (registration.studentNumber || registration.registrationId?.startsWith('TIP-TX-')));
+
+    if (isStudent) {
+      const closed = await isStudentRegistrationClosed();
+      if (closed) {
+        throw new Error('Registration for students is now closed as maximum capacity has been reached. Thank you for your interest in TechX Summit 2026.');
+      }
     }
+
+    const dupCheck = await checkDuplicateRegistration({
+      attendeeType: isStudent ? 'student' : 'industry',
+      email: registration.email || registration.workEmail,
+      studentNumber: registration.studentNumber,
+      mobile: registration.mobile || registration.mobileNumber,
+      fullName: registration.fullName || `${registration.firstName || ''} ${registration.lastName || ''}`,
+      companyName: registration.companyName || registration.company
+    });
+
+    if (dupCheck.isDuplicate) {
+      console.warn('❌ Duplicate registration rejected:', dupCheck.reason);
+      throw new Error(dupCheck.reason || 'Duplicate registration entry detected. Duplicate registrations are not accepted.');
+    }
+
+    const regId = registration.registrationId || `REG-${Date.now()}`;
+    await setDoc(doc(db, 'techx_registrations', regId), {
+      ...registration,
+      id: regId,
+      createdAt: registration.createdAt || Date.now()
+    });
+    console.log('✅ Registration saved to Cloud Firestore:', regId);
   }
 }
 

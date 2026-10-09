@@ -48,6 +48,23 @@
         "createdAt": { "type": "number" }
       },
       "required": ["fullName", "email", "mobile", "registrationId"]
+    },
+    "techxCheckin": {
+      "title": "TechX Check-in Attendance",
+      "description": "Attendance event check-in records for TechX Summit 2026",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "student_id": { "type": "string" },
+        "checkin_type": { "type": "string", "enum": ["qr_scan", "manual_search", "walkin"] },
+        "checked_in_at": { "type": "string" },
+        "created_by": { "type": "string" },
+        "student_name": { "type": "string" },
+        "program": { "type": "string" },
+        "college": { "type": "string" },
+        "location": { "type": "string" }
+      },
+      "required": ["id", "student_id", "checkin_type", "checked_in_at"]
     }
   },
   "firestore": {
@@ -58,6 +75,10 @@
     "/techx_registrations/{registrationId}": {
       "schema": "techxRegistration",
       "description": "Event attendee registrations for TechX Summit 2026"
+    },
+    "/techx_checkins/{checkinId}": {
+      "schema": "techxCheckin",
+      "description": "Attendance check-in records for TechX Summit 2026"
     }
   }
 }
