@@ -260,10 +260,14 @@ export async function findStudentByQrCodeId(
   cachedStudents: StudentRecord[]
 ): Promise<StudentRecord | null> {
   const cleanId = qrCodeId.trim().toUpperCase();
+  const rawClean = qrCodeId.trim().toLowerCase();
 
   // 1. Check cached list
   const localMatch = cachedStudents.find(
-    (s) => s.qr_code_id.toUpperCase() === cleanId || s.id.toUpperCase() === cleanId
+    (s) => s.qr_code_id.toUpperCase() === cleanId || 
+           s.id.toUpperCase() === cleanId ||
+           (s.email && s.email.toLowerCase() === rawClean) ||
+           (s.phone && s.phone.replace(/\D/g, '') === cleanId.replace(/\D/g, '') && cleanId.replace(/\D/g, '').length >= 7)
   );
   if (localMatch) return localMatch;
 
@@ -281,11 +285,29 @@ export async function findStudentByQrCodeId(
     }
 
     // Try query by registrationId
-    const q = query(collection(db, 'techx_registrations'), where('registrationId', '==', cleanId));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      const firstDoc = snap.docs[0];
+    const q1 = query(collection(db, 'techx_registrations'), where('registrationId', '==', cleanId));
+    const snap1 = await getDocs(q1);
+    if (!snap1.empty) {
+      const firstDoc = snap1.docs[0];
       const attendee = normalizeAttendeeRecord(firstDoc.id, firstDoc.data());
+      return attendeeToStudentRecord(attendee);
+    }
+
+    // Try query by email if input looks like an email or student query
+    if (rawClean.includes('@')) {
+      const q2 = query(collection(db, 'techx_registrations'), where('email', '==', rawClean));
+      const snap2 = await getDocs(q2);
+      if (!snap2.empty) {
+        const attendee = normalizeAttendeeRecord(snap2.docs[0].id, snap2.docs[0].data());
+        return attendeeToStudentRecord(attendee);
+      }
+    }
+
+    // Try query by studentNumber
+    const q3 = query(collection(db, 'techx_registrations'), where('studentNumber', '==', cleanId));
+    const snap3 = await getDocs(q3);
+    if (!snap3.empty) {
+      const attendee = normalizeAttendeeRecord(snap3.docs[0].id, snap3.docs[0].data());
       return attendeeToStudentRecord(attendee);
     }
   } catch (err) {

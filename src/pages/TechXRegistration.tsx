@@ -18,7 +18,8 @@ import {
   Download,
   Printer,
   ChevronDown,
-  FlipHorizontal
+  FlipHorizontal,
+  Upload
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import QRCode from 'qrcode';
@@ -36,6 +37,7 @@ import {
   subscribeToCheckins,
   fetchCheckinsOnce,
   attendeeToStudentRecord,
+  findStudentByQrCodeId,
   recordCheckin,
   registerWalkinStudent,
   playCheckinSuccessSound,
@@ -59,6 +61,9 @@ export const TechXRegistration: React.FC = () => {
   const [cameraPermissionDenied, setCameraPermissionDenied] = useState<boolean>(false);
   const [isProcessingScan, setIsProcessingScan] = useState<boolean>(false);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
+  const [availableCameras, setAvailableCameras] = useState<Array<{ id: string; label: string }>>([]);
+  const [activeCameraIndex, setActiveCameraIndex] = useState<number>(0);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [mirrorCamera, setMirrorCamera] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem('techx_scanner_mirror');
@@ -199,57 +204,153 @@ export const TechXRegistration: React.FC = () => {
     setCountdownSeconds(null);
   };
 
-  const startScanner = async () => {
+  const startScanner = async (requestedCameraId?: string) => {
     setScannerError(null);
     setCameraPermissionDenied(false);
 
     try {
+      // 1. Properly stop and clear any previous scanner instance
       if (html5QrCodeRef.current) {
         try {
           if (html5QrCodeRef.current.isScanning) {
             await html5QrCodeRef.current.stop();
           }
-        } catch {
-          // ignore
+        } catch (e) {
+          console.warn('Previous scanner stop notice:', e);
         }
+        try {
+          await html5QrCodeRef.current.clear();
+        } catch (e) {
+          console.warn('Previous scanner clear notice:', e);
+        }
+        html5QrCodeRef.current = null;
       }
 
+      // 2. Clear target DOM element to guarantee clean initialization
       const container = document.getElementById(scannerContainerId);
       if (!container) return;
+      container.innerHTML = '';
 
+      // 3. Enumerate available cameras
+      let cameras: Array<{ id: string; label: string }> = [];
+      try {
+        cameras = await Html5Qrcode.getCameras();
+        if (cameras && cameras.length > 0) {
+          setAvailableCameras(cameras);
+        }
+      } catch (camErr) {
+        console.warn('Cameras enumeration notice:', camErr);
+      }
+
+      // 4. Create new scanner instance with native barcode detector support where available
       const qrScanner = new Html5Qrcode(scannerContainerId, {
         formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        verbose: false
+        verbose: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        }
       });
       html5QrCodeRef.current = qrScanner;
 
-      await qrScanner.start(
-        { facingMode: 'environment' },
-        {
-          fps: 15,
-          qrbox: { width: 280, height: 280 },
-          aspectRatio: 1.0
+      const scanConfig = {
+        fps: 15,
+        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const edge = Math.max(160, Math.floor(minEdge * 0.85));
+          return { width: edge, height: edge };
         },
-        (decodedText) => {
-          handleQrCodeScanned(decodedText);
-        },
-        () => {
-          // ignore continuous scanning frame misses
-        }
-      );
+        aspectRatio: 1.0,
+        disableFlip: false
+      };
 
-      setScannerActive(true);
+      const onScanSuccess = (decodedText: string) => {
+        handleQrCodeScanned(decodedText);
+      };
+
+      const onScanFailure = () => {
+        // Continuous frame misses are normal, ignore
+      };
+
+      let started = false;
+      let lastErr: any = null;
+
+      // Strategy A: If specific camera ID requested or selected
+      if (requestedCameraId) {
+        try {
+          await qrScanner.start(requestedCameraId, scanConfig, onScanSuccess, onScanFailure);
+          started = true;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      // Strategy B: If multiple cameras found, look for rear/environment camera first
+      if (!started && cameras.length > 0) {
+        const backCam = cameras.find(c => /back|rear|environment/i.test(c.label));
+        const preferredCam = backCam || cameras[0];
+        try {
+          await qrScanner.start(preferredCam.id, scanConfig, onScanSuccess, onScanFailure);
+          started = true;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      // Strategy C: Environment facingMode constraint
+      if (!started) {
+        try {
+          await qrScanner.start({ facingMode: 'environment' }, scanConfig, onScanSuccess, onScanFailure);
+          started = true;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      // Strategy D: Front/user facingMode constraint (essential for laptops & webcams)
+      if (!started) {
+        try {
+          await qrScanner.start({ facingMode: 'user' }, scanConfig, onScanSuccess, onScanFailure);
+          started = true;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      // Strategy E: First camera device ID fallback
+      if (!started && cameras.length > 0) {
+        try {
+          await qrScanner.start(cameras[0].id, scanConfig, onScanSuccess, onScanFailure);
+          started = true;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      if (started) {
+        setScannerActive(true);
+        setScannerError(null);
+        setCameraPermissionDenied(false);
+      } else {
+        throw lastErr || new Error('No camera stream could be established');
+      }
     } catch (err: any) {
-      console.warn('Big QR scanner camera start:', err);
+      console.warn('Big QR scanner camera start error:', err);
       setScannerActive(false);
       const msg = err?.message || String(err);
       if (msg.includes('Permission') || msg.includes('NotAllowedError')) {
         setCameraPermissionDenied(true);
-        setScannerError('Camera permission denied.');
+        setScannerError('Camera permission denied. Allow camera access or enter Pass ID manually.');
       } else {
-        setScannerError('Camera not available on this device.');
+        setScannerError('Camera stream could not start. You can upload a QR image or enter Pass ID below.');
       }
     }
+  };
+
+  const switchCamera = async () => {
+    if (availableCameras.length <= 1) return;
+    const nextIdx = (activeCameraIndex + 1) % availableCameras.length;
+    setActiveCameraIndex(nextIdx);
+    await startScanner(availableCameras[nextIdx].id);
   };
 
   const stopScanner = async () => {
@@ -261,6 +362,48 @@ export const TechXRegistration: React.FC = () => {
       }
     }
     setScannerActive(false);
+  };
+
+  const handleScanImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsProcessingScan(true);
+      const tempId = 'techx-image-scan-temp';
+      let tempEl = document.getElementById(tempId);
+      if (!tempEl) {
+        tempEl = document.createElement('div');
+        tempEl.id = tempId;
+        tempEl.style.display = 'none';
+        document.body.appendChild(tempEl);
+      }
+      const fileScanner = new Html5Qrcode(tempId, {
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        verbose: false
+      });
+      const decodedText = await fileScanner.scanFile(file, false);
+      try {
+        await fileScanner.clear();
+      } catch {}
+      setIsProcessingScan(false);
+
+      if (decodedText) {
+        processStudentCheckin(decodedText, 'qr_scan');
+      }
+    } catch (err: any) {
+      setIsProcessingScan(false);
+      console.warn('QR file scan error:', err);
+      playErrorSound();
+      setScanResult({
+        status: 'invalid_format',
+        scannedText: file.name,
+        timestamp: new Date().toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila' })
+      });
+      autoResetResult(3500);
+    } finally {
+      if (e.target) e.target.value = '';
+    }
   };
 
   // ---------------------------------------------------------------------------
@@ -281,32 +424,48 @@ export const TechXRegistration: React.FC = () => {
       second: '2-digit'
     });
 
+    // 1. Try to extract TIP-TX-XXXXXX from any text, URL, or JSON
+    let targetId = '';
     const match = rawInput.match(/TIP-TX-[A-Za-z0-9]+/i);
-    const normalizedQrId = match ? match[0].toUpperCase() : rawInput.trim().toUpperCase();
-
-    if (!normalizedQrId || !normalizedQrId.startsWith('TIP-TX-')) {
-      playErrorSound();
-      setScanResult({
-        status: 'invalid_format',
-        scannedText: rawInput,
-        timestamp: timestampStr
-      });
-      setIsProcessingScan(false);
-      autoResetResult(3000);
-      return;
+    if (match) {
+      targetId = match[0].toUpperCase();
+    } else {
+      // Check if it's JSON
+      try {
+        const parsed = JSON.parse(rawInput);
+        const candidate = parsed.registrationId || parsed.ticketId || parsed.id || parsed.student_id || parsed.qr_code_id;
+        if (candidate) {
+          const jsonMatch = String(candidate).match(/TIP-TX-[A-Za-z0-9]+/i);
+          targetId = jsonMatch ? jsonMatch[0].toUpperCase() : String(candidate).trim();
+        }
+      } catch {}
     }
 
-    // 1. Check if already checked in
-    const existingCheckin = checkinMap.get(normalizedQrId);
+    if (!targetId) {
+      targetId = rawInput.trim();
+    }
+
+    // 2. Check if already checked in
+    const cleanUpper = targetId.toUpperCase();
+    const existingCheckin = checkinMap.get(cleanUpper) || 
+      checkins.find(c => 
+        c.student_id.toUpperCase() === cleanUpper ||
+        (c.email && c.email.toLowerCase() === targetId.toLowerCase())
+      );
+
     if (existingCheckin) {
       playWarningSound();
-      const student = studentsList.find((s) => s.qr_code_id.toUpperCase() === normalizedQrId);
+      const student = studentsList.find((s) => 
+        s.qr_code_id.toUpperCase() === cleanUpper || 
+        s.id.toUpperCase() === cleanUpper ||
+        (s.email && s.email.toLowerCase() === targetId.toLowerCase())
+      );
       setScanResult({
         status: 'already_checked_in',
         student,
         checkin: existingCheckin,
         previousCheckin: existingCheckin,
-        scannedText: normalizedQrId,
+        scannedText: targetId,
         timestamp: timestampStr
       });
       setIsProcessingScan(false);
@@ -314,13 +473,28 @@ export const TechXRegistration: React.FC = () => {
       return;
     }
 
-    // 2. Find student in database
-    const student = studentsList.find((s) => s.qr_code_id.toUpperCase() === normalizedQrId);
+    // 3. Find student in database (in-memory list first)
+    let student = studentsList.find((s) => 
+      s.qr_code_id.toUpperCase() === cleanUpper ||
+      s.id.toUpperCase() === cleanUpper ||
+      (s.email && s.email.toLowerCase() === targetId.toLowerCase()) ||
+      (s.phone && s.phone.replace(/\D/g, '') === targetId.replace(/\D/g, '') && targetId.replace(/\D/g, '').length >= 7)
+    );
+
+    // If not found in memory, query Firestore directly in real-time
+    if (!student) {
+      try {
+        student = (await findStudentByQrCodeId(targetId, studentsList)) || undefined;
+      } catch (findErr) {
+        console.warn('Real-time Firestore student lookup notice:', findErr);
+      }
+    }
+
     if (!student) {
       playErrorSound();
       setScanResult({
         status: 'not_found',
-        scannedText: normalizedQrId,
+        scannedText: targetId,
         timestamp: timestampStr
       });
       setIsProcessingScan(false);
@@ -328,10 +502,10 @@ export const TechXRegistration: React.FC = () => {
       return;
     }
 
-    // 3. Process new check-in
+    // 4. Process new check-in
     try {
       const result = await recordCheckin({
-        student_id: normalizedQrId,
+        student_id: student.qr_code_id,
         checkin_type: checkinType,
         created_by: 'Entrance Desk',
         student
@@ -344,7 +518,7 @@ export const TechXRegistration: React.FC = () => {
           student,
           checkin: result.previousCheckin,
           previousCheckin: result.previousCheckin,
-          scannedText: normalizedQrId,
+          scannedText: student.qr_code_id,
           timestamp: timestampStr
         });
         autoResetResult(4000);
@@ -359,7 +533,7 @@ export const TechXRegistration: React.FC = () => {
             checkinType
           },
           checkin: result.checkin,
-          scannedText: normalizedQrId,
+          scannedText: student.qr_code_id,
           timestamp: timestampStr
         });
         autoResetResult(3000);
@@ -392,7 +566,7 @@ export const TechXRegistration: React.FC = () => {
   };
 
   const handleQrCodeScanned = (decodedText: string) => {
-    if (isProcessingScan || scanResult) return;
+    if (!decodedText || isProcessingScan || scanResult) return;
     processStudentCheckin(decodedText, 'qr_scan');
   };
 
@@ -627,26 +801,63 @@ export const TechXRegistration: React.FC = () => {
                   }`}
                 />
 
-                {/* Mirror Toggle Badge (Top Right of viewfinder) */}
+                {/* Hidden File Input for scanning QR code images */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleScanImageFile}
+                  className="hidden"
+                />
+
+                {/* Top Controls Bar when camera is active */}
                 {scannerActive && !scanResult && (
-                  <button
-                    onClick={() => {
-                      const next = !mirrorCamera;
-                      setMirrorCamera(next);
-                      try {
-                        localStorage.setItem('techx_scanner_mirror', String(next));
-                      } catch {}
-                    }}
-                    title={mirrorCamera ? 'Camera Mirrored (Click to unmirror)' : 'Camera Unmirrored (Click to mirror)'}
-                    className={`absolute top-3 right-3 z-20 px-2.5 py-1 rounded-lg text-[11px] font-mono font-medium flex items-center gap-1.5 backdrop-blur-md border transition cursor-pointer ${
-                      mirrorCamera
-                        ? 'bg-[#00d2ff]/20 border-[#00d2ff]/40 text-[#00d2ff] hover:bg-[#00d2ff]/30'
-                        : 'bg-black/60 border-white/20 text-slate-300 hover:text-white hover:bg-black/80'
-                    }`}
-                  >
-                    <FlipHorizontal className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{mirrorCamera ? 'Mirrored' : 'Normal'}</span>
-                  </button>
+                  <div className="absolute top-3 inset-x-3 z-20 flex items-center justify-between pointer-events-none">
+                    {/* Left: Switch Camera (Front / Rear / External) if multiple devices exist */}
+                    {availableCameras.length > 1 ? (
+                      <button
+                        onClick={switchCamera}
+                        title="Switch Camera (Front / Rear / External)"
+                        className="pointer-events-auto px-2.5 py-1 rounded-lg text-[11px] font-mono font-medium flex items-center gap-1.5 backdrop-blur-md bg-black/60 border border-white/20 text-slate-300 hover:text-white hover:bg-black/80 transition cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Flip Cam</span>
+                      </button>
+                    ) : (
+                      <div />
+                    )}
+
+                    {/* Right: Mirror Toggle Badge & Image Upload */}
+                    <div className="flex items-center gap-1.5 pointer-events-auto">
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        title="Upload & Scan QR Code Image"
+                        className="px-2 py-1 rounded-lg text-[11px] font-mono font-medium flex items-center gap-1 backdrop-blur-md bg-black/60 border border-white/20 text-slate-300 hover:text-white hover:bg-black/80 transition cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Upload</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          const next = !mirrorCamera;
+                          setMirrorCamera(next);
+                          try {
+                            localStorage.setItem('techx_scanner_mirror', String(next));
+                          } catch {}
+                        }}
+                        title={mirrorCamera ? 'Camera Mirrored (Click to unmirror)' : 'Camera Unmirrored (Click to mirror)'}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-medium flex items-center gap-1.5 backdrop-blur-md border transition cursor-pointer ${
+                          mirrorCamera
+                            ? 'bg-[#00d2ff]/20 border-[#00d2ff]/40 text-[#00d2ff] hover:bg-[#00d2ff]/30'
+                            : 'bg-black/60 border-white/20 text-slate-300 hover:text-white hover:bg-black/80'
+                        }`}
+                      >
+                        <FlipHorizontal className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">{mirrorCamera ? 'Mirrored' : 'Normal'}</span>
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 {/* Laser Sweep Animation when scanning is active */}
@@ -661,25 +872,35 @@ export const TechXRegistration: React.FC = () => {
 
                 {/* Camera Inactive / Permission Denied Fallback */}
                 {!scannerActive && !scanResult && (
-                  <div className="absolute inset-0 bg-[#070A1E]/95 flex flex-col items-center justify-center p-6 text-center z-10">
-                    <div className="w-20 h-20 rounded-2xl bg-[#00d2ff]/10 border border-[#00d2ff]/30 flex items-center justify-center text-[#00d2ff] mb-4">
-                      <QrCode className="w-10 h-10 animate-pulse" />
+                  <div className="absolute inset-0 bg-[#070A1E]/95 flex flex-col items-center justify-center p-5 text-center z-10">
+                    <div className="w-16 h-16 rounded-2xl bg-[#00d2ff]/10 border border-[#00d2ff]/30 flex items-center justify-center text-[#00d2ff] mb-3">
+                      <QrCode className="w-8 h-8 animate-pulse" />
                     </div>
-                    <h3 className="text-white font-bold text-base">
-                      {cameraPermissionDenied ? 'Camera Access Needed' : 'Camera Ready'}
+                    <h3 className="text-white font-bold text-sm sm:text-base">
+                      {cameraPermissionDenied ? 'Camera Access Needed' : 'Camera Scanner'}
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed font-mono">
-                      {cameraPermissionDenied
-                        ? 'Please allow camera permission in browser or enter ID manually.'
-                        : 'Tap below to activate camera scanner.'}
+                    <p className="text-[11px] sm:text-xs text-slate-400 mt-1 max-w-xs leading-relaxed font-mono">
+                      {scannerError ||
+                        (cameraPermissionDenied
+                          ? 'Please allow camera permission in your browser.'
+                          : 'Tap below to activate camera or upload a QR image.')}
                     </p>
-                    <button
-                      onClick={startScanner}
-                      className="mt-4 px-6 py-2.5 rounded-xl bg-[#00d2ff] hover:bg-[#05BFE0] text-black font-mono font-bold text-xs flex items-center gap-2 shadow-lg shadow-[#00d2ff]/20 transition cursor-pointer"
-                    >
-                      <Camera className="w-4 h-4" />
-                      <span>Start Camera</span>
-                    </button>
+                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        onClick={() => startScanner()}
+                        className="px-4 py-2 rounded-xl bg-[#00d2ff] hover:bg-[#05BFE0] text-black font-mono font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-[#00d2ff]/20 transition cursor-pointer"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>Start Camera</span>
+                      </button>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-mono font-medium text-xs flex items-center gap-1.5 border border-white/15 transition cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload QR</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -789,10 +1010,38 @@ export const TechXRegistration: React.FC = () => {
                       </div>
                     ) : (
                       <div className="text-xs text-white/80 font-mono">
-                        Code: {scanResult.scannedText}
-                        <p className="mt-1 text-white/70">
-                          This code was not found in the TechX participant list.
+                        <div className="font-bold text-white break-all text-[11px]">Input: {scanResult.scannedText}</div>
+                        <p className="mt-1 text-white/80 text-[11px] leading-relaxed">
+                          {scanResult.status === 'invalid_format'
+                            ? 'Unrecognized QR code or student identifier.'
+                            : 'This pass was not found in the attendee list.'}
                         </p>
+                        <div className="mt-2.5 flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setWalkinError(null);
+                              setStaffTab('walkin');
+                              setStaffModalOpen(true);
+                              handleResetScan();
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white font-mono text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
+                          >
+                            <UserPlus className="w-3 h-3" />
+                            <span>Walk-In</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSearchQuery(scanResult.scannedText);
+                              setStaffTab('search');
+                              setStaffModalOpen(true);
+                              handleResetScan();
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-mono text-[11px] flex items-center gap-1 transition cursor-pointer"
+                          >
+                            <Search className="w-3 h-3" />
+                            <span>Search</span>
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -818,7 +1067,7 @@ export const TechXRegistration: React.FC = () => {
               onClick={() => setShowManualInput(true)}
               className="text-[11px] font-mono text-slate-500 hover:text-slate-300 transition underline decoration-dotted cursor-pointer"
             >
-              Enter Pass ID manually
+              Enter Pass ID or email manually
             </button>
           ) : (
             <form
@@ -834,7 +1083,7 @@ export const TechXRegistration: React.FC = () => {
                 type="text"
                 value={manualInputId}
                 onChange={(e) => setManualInputId(e.target.value)}
-                placeholder="TIP-TX-XXXXXX"
+                placeholder="TIP-TX-XXXXXX or email"
                 autoFocus
                 className="w-full bg-[#0B0F2B] border border-white/20 rounded-xl px-3 py-1.5 text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-[#00d2ff]"
               />
