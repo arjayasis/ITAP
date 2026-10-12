@@ -121,13 +121,11 @@ export const TechXSummit2026: React.FC = () => {
   const [isRegistered, setIsRegistered] = useState(false);
   const [regTicketId, setRegTicketId] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
-  const [isRegistrationClosed, setIsRegistrationClosed] = useState(false);
+  const [isRegistrationClosed, setIsRegistrationClosed] = useState(true);
 
-  // Quietly check registration capacity status on load and modal open (do not expose internal limits)
+  // Student registration is closed - ensure state is locked
   useEffect(() => {
-    isStudentRegistrationClosed()
-      .then((closed) => setIsRegistrationClosed(closed))
-      .catch(() => {});
+    setIsRegistrationClosed(true);
   }, []);
 
   useEffect(() => {

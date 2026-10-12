@@ -526,12 +526,8 @@ export async function getStudentRegistrationCount(): Promise<number> {
 }
 
 export async function isStudentRegistrationClosed(): Promise<boolean> {
-  try {
-    const count = await getStudentRegistrationCount();
-    return count >= STUDENT_REGISTRATION_CAP;
-  } catch {
-    return false;
-  }
+  // Student registration is closed by event administration
+  return true;
 }
 
 // Submit attendee registration to Cloud Firestore (with strict duplicate protection and capacity cap)
