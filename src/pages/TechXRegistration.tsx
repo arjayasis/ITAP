@@ -19,7 +19,15 @@ import {
   Printer,
   ChevronDown,
   FlipHorizontal,
-  Upload
+  Upload,
+  Maximize2,
+  Minimize2,
+  Sun,
+  Moon,
+  BarChart3,
+  Clock,
+  Check,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import QRCode from 'qrcode';
@@ -34,6 +42,7 @@ import {
   TechXCheckin,
   StudentRecord,
   CheckinType,
+  CheckinSession,
   subscribeToCheckins,
   fetchCheckinsOnce,
   attendeeToStudentRecord,
@@ -72,6 +81,31 @@ export const TechXRegistration: React.FC = () => {
       return true;
     }
   });
+
+  // Fullscreen Mode State
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.warn('Fullscreen error:', err);
+    }
+  };
 
   // Scan Outcome Results
   const [scanResult, setScanResult] = useState<{
@@ -139,26 +173,137 @@ export const TechXRegistration: React.FC = () => {
     };
   }, []);
 
-  // Compute Fast Lookup Map for Check-ins
-  const checkinMap = useMemo(() => {
+  // Active Check-In Session: 'morning' (AM) | 'afternoon' (PM)
+  // Auto-detect based on current time (>= 12:00 = afternoon), can be toggled manually by entrance staff
+  const [activeSession, setActiveSession] = useState<CheckinSession>(() => {
+    try {
+      const stored = localStorage.getItem('techx_checkin_session');
+      if (stored === 'morning' || stored === 'afternoon') return stored;
+      const now = new Date();
+      const hour = parseInt(
+        new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'Asia/Manila' }).format(now),
+        10
+      );
+      return hour >= 12 ? 'afternoon' : 'morning';
+    } catch {
+      return 'morning';
+    }
+  });
+
+  const handleSessionChange = (session: CheckinSession) => {
+    setActiveSession(session);
+    try {
+      localStorage.setItem('techx_checkin_session', session);
+    } catch {}
+    handleResetScan();
+  };
+
+  // Summary Modal State
+  const [summaryModalOpen, setSummaryModalOpen] = useState<boolean>(false);
+  const [summaryFilterSession, setSummaryFilterSession] = useState<'all' | 'morning' | 'afternoon'>('all');
+  const [summarySearch, setSummarySearch] = useState<string>('');
+  const [summaryCampusFilter, setSummaryCampusFilter] = useState<'all' | 'Manila' | 'Quezon City'>('all');
+
+  // Compute Fast Lookup Maps for Check-ins (Active Session & Global)
+  const activeSessionCheckinMap = useMemo(() => {
     const map = new Map<string, TechXCheckin>();
     checkins.forEach((c) => {
-      if (c.student_id) {
+      if (c.student_id && c.session === activeSession) {
         map.set(c.student_id.trim().toUpperCase(), c);
       }
     });
     return map;
+  }, [checkins, activeSession]);
+
+  const morningCheckins = useMemo(() => {
+    return checkins.filter((c) => c.session === 'morning');
   }, [checkins]);
 
-  // Compute Students List
+  const afternoonCheckins = useMemo(() => {
+    return checkins.filter((c) => c.session === 'afternoon');
+  }, [checkins]);
+
+  // Compute Students List with session-aware statuses
   const studentsList = useMemo(() => {
     return rawAttendees
       .filter((a) => a.attendeeType === 'student' || (!a.attendeeType && (a.studentNumber || a.registrationId?.startsWith('TIP-TX-'))))
-      .map((a) => attendeeToStudentRecord(a, checkinMap));
-  }, [rawAttendees, checkinMap]);
+      .map((a) => attendeeToStudentRecord(a, activeSessionCheckinMap, checkins, activeSession));
+  }, [rawAttendees, activeSessionCheckinMap, checkins, activeSession]);
 
   const totalRegistered = studentsList.length;
-  const totalCheckedIn = checkins.length;
+  const totalCheckedInActiveSession = activeSession === 'morning' ? morningCheckins.length : afternoonCheckins.length;
+  const morningCount = morningCheckins.length;
+  const afternoonCount = afternoonCheckins.length;
+
+  // Distinct students who checked in to both sessions or at least one
+  const uniqueStudentsCheckedInCount = useMemo(() => {
+    const set = new Set<string>();
+    checkins.forEach((c) => {
+      if (c.student_id) set.add(c.student_id.toUpperCase());
+    });
+    return set.size;
+  }, [checkins]);
+
+  const bothSessionsCount = useMemo(() => {
+    const morningIds = new Set(morningCheckins.map((c) => c.student_id.toUpperCase()));
+    let count = 0;
+    afternoonCheckins.forEach((c) => {
+      if (morningIds.has(c.student_id.toUpperCase())) {
+        count++;
+      }
+    });
+    return count;
+  }, [morningCheckins, afternoonCheckins]);
+
+  // CSV Export for Checked-in Students Summary
+  const exportCheckinsSummaryCSV = () => {
+    const headers = [
+      'Student ID / Pass ID',
+      'Full Name',
+      'Session',
+      'Checked-In Timestamp',
+      'Check-in Type',
+      'Program',
+      'Campus',
+      'Year Level',
+      'Email',
+      'Mobile',
+      'Logged By'
+    ];
+
+    const recordsToExport = summaryFilterSession === 'all'
+      ? checkins
+      : checkins.filter((c) => c.session === summaryFilterSession);
+
+    const rows = recordsToExport.map((c) => [
+      c.student_id,
+      c.student_name || `${c.first_name || ''} ${c.last_name || ''}`.trim(),
+      c.session ? (c.session === 'morning' ? 'Morning Plenary (AM)' : 'Afternoon Track (PM)') : 'Morning Plenary (AM)',
+      c.checked_in_at,
+      c.checkin_type,
+      c.program || 'N/A',
+      c.location || 'Quezon City',
+      c.year_level || 'N/A',
+      c.email || 'N/A',
+      c.phone || 'N/A',
+      c.created_by || 'Entrance Staff'
+    ]);
+
+    const csvContent = [
+      headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(','),
+      ...rows.map((row) => row.map((val) => `"${String(val || '').replace(/"/g, '""')}"`).join(','))
+    ].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `TechX_CheckIn_Summary_${activeSession}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   // Generate Event Registration QR Code for display mode
   useEffect(() => {
@@ -445,12 +590,14 @@ export const TechXRegistration: React.FC = () => {
       targetId = rawInput.trim();
     }
 
-    // 2. Check if already checked in
+    // 2. Check if already checked in FOR THE ACTIVE SESSION
     const cleanUpper = targetId.toUpperCase();
-    const existingCheckin = checkinMap.get(cleanUpper) || 
+    const existingCheckin = activeSessionCheckinMap.get(cleanUpper) || 
       checkins.find(c => 
-        c.student_id.toUpperCase() === cleanUpper ||
-        (c.email && c.email.toLowerCase() === targetId.toLowerCase())
+        c.session === activeSession && (
+          c.student_id.toUpperCase() === cleanUpper ||
+          (c.email && c.email.toLowerCase() === targetId.toLowerCase())
+        )
       );
 
     if (existingCheckin) {
@@ -502,12 +649,13 @@ export const TechXRegistration: React.FC = () => {
       return;
     }
 
-    // 4. Process new check-in
+    // 4. Process new check-in for the active session
     try {
       const result = await recordCheckin({
         student_id: student.qr_code_id,
         checkin_type: checkinType,
-        created_by: 'Entrance Desk',
+        session: activeSession,
+        created_by: `${activeSession === 'morning' ? 'Morning' : 'Afternoon'} Desk`,
         student
       });
 
@@ -529,6 +677,8 @@ export const TechXRegistration: React.FC = () => {
           student: {
             ...student,
             isCheckedIn: true,
+            isMorningCheckedIn: activeSession === 'morning' ? true : student.isMorningCheckedIn,
+            isAfternoonCheckedIn: activeSession === 'afternoon' ? true : student.isAfternoonCheckedIn,
             checkedInAt: result.checkin.checked_in_at,
             checkinType
           },
@@ -583,7 +733,8 @@ export const TechXRegistration: React.FC = () => {
       const res = await recordCheckin({
         student_id: student.qr_code_id,
         checkin_type: 'manual_search',
-        created_by: 'Entrance Desk',
+        session: activeSession,
+        created_by: `${activeSession === 'morning' ? 'Morning' : 'Afternoon'} Desk`,
         student
       });
       if (res.success) {
@@ -624,7 +775,8 @@ export const TechXRegistration: React.FC = () => {
         year_level: walkinForm.yearLevel,
         email: walkinForm.email,
         phone: walkinForm.phone,
-        created_by: 'Entrance Desk'
+        session: activeSession,
+        created_by: `${activeSession === 'morning' ? 'Morning' : 'Afternoon'} Walk-in Desk`
       });
 
       const qrDataUrl = await QRCode.toDataURL(student.qr_code_id, {
@@ -694,16 +846,71 @@ export const TechXRegistration: React.FC = () => {
             </span>
           </Link>
 
-          <span className="text-slate-600 hidden sm:inline">•</span>
+          {/* Session Switcher in Header */}
+          <div className="flex items-center bg-[#070B1E] p-1 rounded-xl border border-white/15 shadow-inner">
+            <button
+              onClick={() => handleSessionChange('morning')}
+              title="Switch to Morning Plenary Session (8:00 AM - 12:00 PM)"
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                activeSession === 'morning'
+                  ? 'bg-amber-400 text-black shadow-md shadow-amber-400/25'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Sun className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Morning</span>
+              <span className="text-[10px] px-1.5 py-0.2 bg-black/20 rounded-md font-mono">
+                {morningCount}
+              </span>
+            </button>
 
-          <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+            <button
+              onClick={() => handleSessionChange('afternoon')}
+              title="Switch to Afternoon Track Session (1:30 PM - 5:00 PM)"
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                activeSession === 'afternoon'
+                  ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/25'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Moon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Afternoon</span>
+              <span className="text-[10px] px-1.5 py-0.2 bg-black/20 rounded-md font-mono">
+                {afternoonCount}
+              </span>
+            </button>
+          </div>
+
+          <span className="text-slate-600 hidden md:inline">•</span>
+
+          {/* Live Check-In Indicator for Active Session */}
+          <button
+            onClick={() => {
+              setSummaryFilterSession(activeSession);
+              setSummaryModalOpen(true);
+            }}
+            title="Click to view full Checked-in Students Summary"
+            className="text-xs font-mono text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5 cursor-pointer transition"
+          >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Checked In: <strong className="text-white">{totalCheckedIn}</strong> of {totalRegistered}</span>
-          </span>
+            <span className="hidden lg:inline">{activeSession === 'morning' ? 'Morning Check-In:' : 'Afternoon Check-In:'}</span>
+            <span className="lg:hidden">{activeSession === 'morning' ? 'AM:' : 'PM:'}</span>
+            <span><strong className="text-white">{totalCheckedInActiveSession}</strong> of {totalRegistered}</span>
+          </button>
         </div>
 
         {/* Minimal Mode Switch: Camera Scanner vs Display Event QR */}
         <div className="flex items-center gap-2">
+          {/* Summary Trigger Button */}
+          <button
+            onClick={() => setSummaryModalOpen(true)}
+            className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-slate-200 hover:text-white text-xs font-mono flex items-center gap-1.5 transition cursor-pointer"
+            title="Open Checked-in Students Summary & Analytics"
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-[#00d2ff]" />
+            <span className="hidden md:inline">Summary</span>
+          </button>
+
           <div className="flex items-center bg-[#0B0F2B] p-1 rounded-xl border border-white/10 shadow-lg">
             <button
               onClick={() => {
@@ -743,6 +950,24 @@ export const TechXRegistration: React.FC = () => {
           >
             <Users className="w-3.5 h-3.5 text-[#00d2ff]" />
           </Link>
+
+          {/* Fullscreen Trigger */}
+          <button
+            onClick={toggleFullscreen}
+            className={`p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${
+              isFullscreen
+                ? 'bg-[#00d2ff]/20 border-[#00d2ff]/50 text-[#00d2ff] shadow-sm shadow-[#00d2ff]/20'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300 hover:text-white'
+            }`}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-3.5 h-3.5" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5" />
+            )}
+          </button>
         </div>
       </header>
 
@@ -770,11 +995,39 @@ export const TechXRegistration: React.FC = () => {
               </>
             )}
           </h2>
-          <p className="text-xs text-slate-400 mt-1 font-mono">
-            {centerMode === 'scanner'
-              ? 'Hold your printed or mobile QR code in front of the lens'
-              : 'Scan using your smartphone camera to access the portal'}
-          </p>
+          <div className="flex items-center justify-center gap-2 mt-1">
+            <span className="text-xs text-slate-400 font-mono">
+              {centerMode === 'scanner'
+                ? 'Hold your printed or mobile QR code in front of the lens'
+                : 'Scan using your smartphone camera to access the portal'}
+            </span>
+            <span className="text-slate-600">•</span>
+            {/* Session Pill Selector */}
+            <div className="inline-flex items-center rounded-lg bg-white/5 border border-white/10 p-0.5">
+              <button
+                onClick={() => handleSessionChange('morning')}
+                className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold flex items-center gap-1 transition cursor-pointer ${
+                  activeSession === 'morning'
+                    ? 'bg-amber-400 text-black shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Sun className="w-3 h-3" />
+                <span>Morning Plenary</span>
+              </button>
+              <button
+                onClick={() => handleSessionChange('afternoon')}
+                className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold flex items-center gap-1 transition cursor-pointer ${
+                  activeSession === 'afternoon'
+                    ? 'bg-indigo-500 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Moon className="w-3 h-3" />
+                <span>Afternoon Track</span>
+              </button>
+            </div>
+          </div>
         </motion.div>
 
         {/* -------------------------------------------------------------------
@@ -847,7 +1100,7 @@ export const TechXRegistration: React.FC = () => {
                           } catch {}
                         }}
                         title={mirrorCamera ? 'Camera Mirrored (Click to unmirror)' : 'Camera Unmirrored (Click to mirror)'}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-medium flex items-center gap-1.5 backdrop-blur-md border transition cursor-pointer ${
+                        className={`px-2 py-1 rounded-lg text-[11px] font-mono font-medium flex items-center gap-1 backdrop-blur-md border transition cursor-pointer ${
                           mirrorCamera
                             ? 'bg-[#00d2ff]/20 border-[#00d2ff]/40 text-[#00d2ff] hover:bg-[#00d2ff]/30'
                             : 'bg-black/60 border-white/20 text-slate-300 hover:text-white hover:bg-black/80'
@@ -855,6 +1108,23 @@ export const TechXRegistration: React.FC = () => {
                       >
                         <FlipHorizontal className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">{mirrorCamera ? 'Mirrored' : 'Normal'}</span>
+                      </button>
+
+                      <button
+                        onClick={toggleFullscreen}
+                        title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                        className={`px-2 py-1 rounded-lg text-[11px] font-mono font-medium flex items-center gap-1 backdrop-blur-md border transition cursor-pointer ${
+                          isFullscreen
+                            ? 'bg-[#00d2ff]/20 border-[#00d2ff]/40 text-[#00d2ff] hover:bg-[#00d2ff]/30'
+                            : 'bg-black/60 border-white/20 text-slate-300 hover:text-white hover:bg-black/80'
+                        }`}
+                      >
+                        {isFullscreen ? (
+                          <Minimize2 className="w-3.5 h-3.5" />
+                        ) : (
+                          <Maximize2 className="w-3.5 h-3.5" />
+                        )}
+                        <span className="hidden sm:inline">{isFullscreen ? 'Exit FS' : 'Fullscreen'}</span>
                       </button>
                     </div>
                   </div>
@@ -964,15 +1234,24 @@ export const TechXRegistration: React.FC = () => {
                         </div>
                       )}
                       <div>
-                        <div className="text-sm font-extrabold text-white">
-                          {scanResult.status === 'success' && 'Checked In!'}
-                          {scanResult.status === 'already_checked_in' && 'Already Checked In'}
-                          {scanResult.status === 'not_found' && 'Pass Not Found'}
-                          {scanResult.status === 'invalid_format' && 'Invalid QR Format'}
+                        <div className="text-sm font-extrabold text-white flex items-center gap-2">
+                          <span>
+                            {scanResult.status === 'success' && 'Checked In!'}
+                            {scanResult.status === 'already_checked_in' && 'Already Checked In'}
+                            {scanResult.status === 'not_found' && 'Pass Not Found'}
+                            {scanResult.status === 'invalid_format' && 'Invalid QR Format'}
+                          </span>
+                          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase ${
+                            activeSession === 'morning'
+                              ? 'bg-amber-400 text-black'
+                              : 'bg-indigo-400 text-white'
+                          }`}>
+                            {activeSession === 'morning' ? 'Morning AM' : 'Afternoon PM'}
+                          </span>
                         </div>
                         <div className="text-[11px] font-mono opacity-80 text-white">
                           {scanResult.status === 'already_checked_in'
-                            ? `First logged: ${scanResult.previousCheckin?.checked_in_at || 'Earlier'}`
+                            ? `Logged: ${scanResult.previousCheckin?.checked_in_at || 'Earlier'}`
                             : scanResult.timestamp}
                         </div>
                       </div>
@@ -1111,14 +1390,34 @@ export const TechXRegistration: React.FC = () => {
       <footer className="relative z-10 w-full px-4 sm:px-8 py-4 flex items-center justify-between text-xs text-slate-500 font-mono">
         <span>Gate 1 Entrance Desk</span>
 
-        {/* Staff Tools Drawer Toggle */}
-        <button
-          onClick={() => setStaffModalOpen(true)}
-          className="text-slate-400 hover:text-[#00d2ff] transition flex items-center gap-1.5 cursor-pointer bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-xl border border-white/10"
-        >
-          <Search className="w-3.5 h-3.5" />
-          <span>Staff Search & Walk-in</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Fullscreen Trigger */}
+          <button
+            onClick={toggleFullscreen}
+            className={`transition flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-xl border text-xs font-mono ${
+              isFullscreen
+                ? 'bg-[#00d2ff]/20 border-[#00d2ff]/50 text-[#00d2ff]'
+                : 'text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border-white/10'
+            }`}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-3.5 h-3.5" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5" />
+            )}
+            <span className="hidden sm:inline">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+          </button>
+
+          {/* Staff Tools Drawer Toggle */}
+          <button
+            onClick={() => setStaffModalOpen(true)}
+            className="text-slate-400 hover:text-[#00d2ff] transition flex items-center gap-1.5 cursor-pointer bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-xl border border-white/10"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span>Staff Search & Walk-in</span>
+          </button>
+        </div>
       </footer>
 
       {/* =========================================================================
@@ -1199,6 +1498,24 @@ export const TechXRegistration: React.FC = () => {
                           </div>
 
                           <div className="flex items-center gap-2">
+                            {/* Session indicators */}
+                            <div className="flex items-center gap-1">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                                s.isMorningCheckedIn
+                                  ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+                                  : 'bg-white/5 text-slate-500 border border-white/5'
+                              }`}>
+                                AM {s.isMorningCheckedIn ? '✓' : '—'}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                                s.isAfternoonCheckedIn
+                                  ? 'bg-indigo-400/20 text-indigo-300 border border-indigo-400/30'
+                                  : 'bg-white/5 text-slate-500 border border-white/5'
+                              }`}>
+                                PM {s.isAfternoonCheckedIn ? '✓' : '—'}
+                              </span>
+                            </div>
+
                             {s.isCheckedIn ? (
                               <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" />
@@ -1207,9 +1524,13 @@ export const TechXRegistration: React.FC = () => {
                             ) : (
                               <button
                                 onClick={() => handleManualTableCheckin(s)}
-                                className="px-3 py-1.5 rounded-lg bg-[#00d2ff] hover:bg-[#05BFE0] text-black font-mono font-bold text-[11px] transition cursor-pointer"
+                                className={`px-3 py-1.5 rounded-lg font-mono font-bold text-[11px] transition cursor-pointer ${
+                                  activeSession === 'morning'
+                                    ? 'bg-amber-400 hover:bg-amber-300 text-black'
+                                    : 'bg-indigo-500 hover:bg-indigo-400 text-white'
+                                }`}
                               >
-                                Check In
+                                Check In ({activeSession === 'morning' ? 'AM' : 'PM'})
                               </button>
                             )}
                           </div>
@@ -1358,6 +1679,281 @@ export const TechXRegistration: React.FC = () => {
               >
                 Done
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* =========================================================================
+          CHECKED-IN STUDENTS SUMMARY MODAL & ANALYTICS
+         ========================================================================= */}
+      <AnimatePresence>
+        {summaryModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-4xl bg-[#0B0F2B] border border-white/15 rounded-3xl p-5 sm:p-7 shadow-2xl relative max-h-[92vh] flex flex-col text-left overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/10 gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-[#00d2ff]/10 text-[#00d2ff] border border-[#00d2ff]/20">
+                      <BarChart3 className="w-4 h-4" />
+                    </span>
+                    <h3 className="text-lg sm:text-xl font-bold text-white font-display">
+                      Checked-In Students Summary
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-400 font-mono mt-1">
+                    Real-time attendance tracking across Morning & Afternoon sessions
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={exportCheckinsSummaryCSV}
+                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-mono text-xs flex items-center gap-1.5 transition cursor-pointer"
+                    title="Export filtered check-ins to CSV spreadsheet"
+                  >
+                    <Download className="w-3.5 h-3.5 text-[#00d2ff]" />
+                    <span>Export CSV</span>
+                  </button>
+
+                  <button
+                    onClick={() => setSummaryModalOpen(false)}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition cursor-pointer"
+                    title="Close Summary"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* High-level Metric Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 py-4">
+                <div className="p-3 sm:p-4 rounded-2xl bg-[#070A1E] border border-white/10">
+                  <div className="text-[11px] font-mono text-slate-400 uppercase flex items-center gap-1">
+                    <Users className="w-3 h-3 text-[#00d2ff]" />
+                    <span>Total Registered</span>
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-white mt-1">
+                    {totalRegistered}
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">Students in registry</div>
+                </div>
+
+                <div className="p-3 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                  <div className="text-[11px] font-mono text-amber-300 uppercase flex items-center gap-1 font-bold">
+                    <Sun className="w-3 h-3 text-amber-400" />
+                    <span>Morning Session</span>
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-white mt-1">
+                    {morningCount}
+                  </div>
+                  <div className="text-[10px] text-amber-200/70 font-mono mt-0.5">
+                    {totalRegistered > 0 ? `${Math.round((morningCount / totalRegistered) * 100)}% turnout` : '0%'}
+                  </div>
+                </div>
+
+                <div className="p-3 sm:p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+                  <div className="text-[11px] font-mono text-indigo-300 uppercase flex items-center gap-1 font-bold">
+                    <Moon className="w-3 h-3 text-indigo-400" />
+                    <span>Afternoon Session</span>
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-white mt-1">
+                    {afternoonCount}
+                  </div>
+                  <div className="text-[10px] text-indigo-200/70 font-mono mt-0.5">
+                    {totalRegistered > 0 ? `${Math.round((afternoonCount / totalRegistered) * 100)}% turnout` : '0%'}
+                  </div>
+                </div>
+
+                <div className="p-3 sm:p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                  <div className="text-[11px] font-mono text-emerald-300 uppercase flex items-center gap-1 font-bold">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <span>Both Sessions</span>
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-white mt-1">
+                    {bothSessionsCount}
+                  </div>
+                  <div className="text-[10px] text-emerald-200/70 font-mono mt-0.5">
+                    {uniqueStudentsCheckedInCount} unique attended
+                  </div>
+                </div>
+              </div>
+
+              {/* Filters & Search Toolbar */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pb-3">
+                {/* Session Filter Tabs */}
+                <div className="flex items-center bg-[#070A1E] p-1 rounded-xl border border-white/10 shrink-0">
+                  <button
+                    onClick={() => setSummaryFilterSession('all')}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition cursor-pointer ${
+                      summaryFilterSession === 'all'
+                        ? 'bg-[#00d2ff] text-black'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    All Logs ({checkins.length})
+                  </button>
+                  <button
+                    onClick={() => setSummaryFilterSession('morning')}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition flex items-center gap-1 cursor-pointer ${
+                      summaryFilterSession === 'morning'
+                        ? 'bg-amber-400 text-black'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Sun className="w-3 h-3" />
+                    <span>Morning ({morningCount})</span>
+                  </button>
+                  <button
+                    onClick={() => setSummaryFilterSession('afternoon')}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition flex items-center gap-1 cursor-pointer ${
+                      summaryFilterSession === 'afternoon'
+                        ? 'bg-indigo-500 text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Moon className="w-3 h-3" />
+                    <span>Afternoon ({afternoonCount})</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 flex-1 max-w-sm">
+                  {/* Search Filter */}
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={summarySearch}
+                      onChange={(e) => setSummarySearch(e.target.value)}
+                      placeholder="Search student or ID..."
+                      className="w-full bg-[#070A1E] border border-white/15 rounded-xl pl-8 pr-3 py-1.5 text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-[#00d2ff]"
+                    />
+                    {summarySearch && (
+                      <button
+                        onClick={() => setSummarySearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Campus Filter */}
+                  <select
+                    value={summaryCampusFilter}
+                    onChange={(e) => setSummaryCampusFilter(e.target.value as any)}
+                    className="bg-[#070A1E] border border-white/15 rounded-xl px-2.5 py-1.5 text-xs font-mono text-slate-300 focus:outline-none focus:border-[#00d2ff] shrink-0"
+                  >
+                    <option value="all">All Campuses</option>
+                    <option value="Quezon City">T.I.P. QC</option>
+                    <option value="Manila">T.I.P. Manila</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Table / List View of Checked-In Students */}
+              <div className="flex-1 overflow-y-auto rounded-2xl border border-white/10 bg-[#070A1E]/80 divide-y divide-white/5">
+                {checkins
+                  .filter((c) => {
+                    if (summaryFilterSession !== 'all' && c.session !== summaryFilterSession) {
+                      return false;
+                    }
+                    if (summaryCampusFilter !== 'all' && c.location !== summaryCampusFilter) {
+                      return false;
+                    }
+                    if (summarySearch.trim()) {
+                      const q = summarySearch.toLowerCase().trim();
+                      const name = (c.student_name || `${c.first_name || ''} ${c.last_name || ''}`).toLowerCase();
+                      const id = (c.student_id || '').toLowerCase();
+                      const prog = (c.program || '').toLowerCase();
+                      const email = (c.email || '').toLowerCase();
+                      return name.includes(q) || id.includes(q) || prog.includes(q) || email.includes(q);
+                    }
+                    return true;
+                  })
+                  .length === 0 ? (
+                    <div className="py-12 text-center text-slate-500 font-mono text-xs">
+                      No check-in logs match the selected session or search filter.
+                    </div>
+                  ) : (
+                    checkins
+                      .filter((c) => {
+                        if (summaryFilterSession !== 'all' && c.session !== summaryFilterSession) {
+                          return false;
+                        }
+                        if (summaryCampusFilter !== 'all' && c.location !== summaryCampusFilter) {
+                          return false;
+                        }
+                        if (summarySearch.trim()) {
+                          const q = summarySearch.toLowerCase().trim();
+                          const name = (c.student_name || `${c.first_name || ''} ${c.last_name || ''}`).toLowerCase();
+                          const id = (c.student_id || '').toLowerCase();
+                          const prog = (c.program || '').toLowerCase();
+                          const email = (c.email || '').toLowerCase();
+                          return name.includes(q) || id.includes(q) || prog.includes(q) || email.includes(q);
+                        }
+                        return true;
+                      })
+                      .map((c, idx) => (
+                        <div
+                          key={c.id || idx}
+                          className="p-3 sm:px-4 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-white/[0.02] transition"
+                        >
+                          <div className="flex items-start sm:items-center gap-3">
+                            <span className="w-7 h-7 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xs font-mono text-slate-400 shrink-0">
+                              {idx + 1}
+                            </span>
+                            <div>
+                              <div className="font-bold text-white text-xs sm:text-sm flex items-center gap-2">
+                                <span>{c.student_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Student Delegate'}</span>
+                                <span className={`text-[10px] font-mono font-bold px-2 py-0.2 rounded-full ${
+                                  c.session === 'afternoon'
+                                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                                    : 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+                                }`}>
+                                  {c.session === 'afternoon' ? 'Afternoon PM' : 'Morning AM'}
+                                </span>
+                              </div>
+                              <div className="text-[11px] font-mono text-slate-400 mt-0.5 flex flex-wrap items-center gap-1.5">
+                                <span className="text-[#00d2ff] font-bold">{c.student_id}</span>
+                                {c.program && <span>• {c.program}</span>}
+                                {c.location && <span className="text-slate-500">({c.location})</span>}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right font-mono text-[11px] shrink-0 sm:pl-4 pl-10">
+                            <div className="text-slate-300 flex items-center sm:justify-end gap-1">
+                              <Clock className="w-3 h-3 text-[#00d2ff]" />
+                              <span>{c.checked_in_at}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-500 mt-0.5">
+                              via <span className="uppercase text-slate-400">{c.checkin_type}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                  )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400 font-mono">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span>Real-time database sync active</span>
+                </span>
+                <button
+                  onClick={() => setSummaryModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-[#00d2ff] hover:bg-[#05BFE0] text-black font-mono font-bold text-xs cursor-pointer transition"
+                >
+                  Close
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

@@ -24,10 +24,12 @@ import appletConfig from '../../firebase-applet-config.json';
 import { AttendeeRecord, fetchRegistrationsOnce, normalizeAttendeeRecord } from './registrationsService';
 
 export type CheckinType = 'qr_scan' | 'manual_search' | 'walkin';
+export type CheckinSession = 'morning' | 'afternoon';
 
 export interface TechXCheckin {
   id: string;
   student_id: string;
+  session: CheckinSession;
   checkin_type: CheckinType;
   checked_in_at: string;
   created_by: string;
@@ -59,10 +61,15 @@ export interface StudentRecord {
   phone: string;
   created_at: number | string;
   attendeeType?: string;
-  isCheckedIn?: boolean;
+  // Session-specific check-in flags
+  isCheckedIn?: boolean; // checked in for the currently active session
   checkedInAt?: string;
   checkinType?: CheckinType;
   checkinId?: string;
+  isMorningCheckedIn?: boolean;
+  morningCheckedInAt?: string;
+  isAfternoonCheckedIn?: boolean;
+  afternoonCheckedInAt?: string;
 }
 
 const STORAGE_KEY_CHECKINS_CACHE = 'techx_checkins_cache_v1';
@@ -106,9 +113,33 @@ export function normalizeCheckin(id: string, raw: any): TechXCheckin {
     ? raw.createdAt
     : (raw.createdAt?.toMillis ? raw.createdAt.toMillis() : Date.now());
 
+  // Determine session: explicit session, or infer from id, or check creation hour in Manila time (>= 12:00 = afternoon)
+  let session: CheckinSession = 'morning';
+  if (raw.session === 'afternoon' || raw.session === 'morning') {
+    session = raw.session;
+  } else if (id && id.includes('-PM-')) {
+    session = 'afternoon';
+  } else if (id && id.includes('-AM-')) {
+    session = 'morning';
+  } else {
+    try {
+      const date = new Date(parsedCreatedAt);
+      const manilaHour = parseInt(
+        new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'Asia/Manila' }).format(date),
+        10
+      );
+      if (manilaHour >= 12) {
+        session = 'afternoon';
+      }
+    } catch {
+      session = 'morning';
+    }
+  }
+
   return {
     id: id || raw.id || `CHK-${Date.now()}`,
     student_id: (raw.student_id || raw.studentId || raw.qr_code_id || raw.registrationId || id).trim(),
+    session,
     checkin_type: (raw.checkin_type || raw.checkinType || 'qr_scan') as CheckinType,
     checked_in_at: raw.checked_in_at || raw.checkedInAt || new Date(parsedCreatedAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }),
     created_by: raw.created_by || raw.createdBy || 'Entrance Staff',
@@ -224,9 +255,30 @@ export async function fetchCheckinsOnce(): Promise<TechXCheckin[]> {
 /**
  * Converts AttendeeRecord to standardized StudentRecord format
  */
-export function attendeeToStudentRecord(attendee: AttendeeRecord, checkinMap?: Map<string, TechXCheckin>): StudentRecord {
+export function attendeeToStudentRecord(
+  attendee: AttendeeRecord,
+  activeCheckinMap?: Map<string, TechXCheckin>,
+  allCheckins?: TechXCheckin[],
+  activeSession: CheckinSession = 'morning'
+): StudentRecord {
   const qrId = (attendee.registrationId || attendee.id).trim();
-  const checkin = checkinMap ? checkinMap.get(qrId.toUpperCase()) : undefined;
+  const upperQrId = qrId.toUpperCase();
+  const activeCheckin = activeCheckinMap ? activeCheckinMap.get(upperQrId) : undefined;
+
+  let morningCheckin: TechXCheckin | undefined;
+  let afternoonCheckin: TechXCheckin | undefined;
+
+  if (allCheckins && allCheckins.length > 0) {
+    morningCheckin = allCheckins.find(
+      (c) => c.session === 'morning' && c.student_id.toUpperCase() === upperQrId
+    );
+    afternoonCheckin = allCheckins.find(
+      (c) => c.session === 'afternoon' && c.student_id.toUpperCase() === upperQrId
+    );
+  } else if (activeCheckin) {
+    if (activeCheckin.session === 'morning') morningCheckin = activeCheckin;
+    if (activeCheckin.session === 'afternoon') afternoonCheckin = activeCheckin;
+  }
 
   const firstName = attendee.firstName || attendee.fullName.split(' ')[0] || '';
   const lastName = attendee.lastName || attendee.fullName.split(' ').slice(1).join(' ') || '';
@@ -245,10 +297,14 @@ export function attendeeToStudentRecord(attendee: AttendeeRecord, checkinMap?: M
     phone: attendee.mobile || 'N/A',
     created_at: attendee.createdAt || attendee.timestamp,
     attendeeType: attendee.attendeeType,
-    isCheckedIn: !!checkin,
-    checkedInAt: checkin?.checked_in_at,
-    checkinType: checkin?.checkin_type,
-    checkinId: checkin?.id
+    isCheckedIn: !!activeCheckin,
+    checkedInAt: activeCheckin?.checked_in_at,
+    checkinType: activeCheckin?.checkin_type,
+    checkinId: activeCheckin?.id,
+    isMorningCheckedIn: !!morningCheckin,
+    morningCheckedInAt: morningCheckin?.checked_in_at,
+    isAfternoonCheckedIn: !!afternoonCheckin,
+    afternoonCheckedInAt: afternoonCheckin?.checked_in_at
   };
 }
 
@@ -323,6 +379,7 @@ export async function findStudentByQrCodeId(
 export async function recordCheckin(params: {
   student_id: string;
   checkin_type: CheckinType;
+  session?: CheckinSession;
   created_by?: string;
   student?: StudentRecord | AttendeeRecord;
 }): Promise<{
@@ -333,11 +390,12 @@ export async function recordCheckin(params: {
   error?: string;
 }> {
   const cleanStudentId = params.student_id.trim().toUpperCase();
+  const targetSession: CheckinSession = params.session || 'morning';
   const currentCheckins = getCachedCheckins();
 
-  // 1. Check if already checked in locally or in current snapshot
+  // 1. Check if already checked in locally or in current snapshot FOR THIS SESSION
   const existing = currentCheckins.find(
-    (c) => c.student_id.toUpperCase() === cleanStudentId
+    (c) => c.student_id.toUpperCase() === cleanStudentId && c.session === targetSession
   );
 
   if (existing) {
@@ -360,12 +418,14 @@ export async function recordCheckin(params: {
     second: '2-digit'
   });
 
-  const checkinId = `CHK-${cleanStudentId}-${now}`;
+  const sessionPrefix = targetSession === 'afternoon' ? 'PM' : 'AM';
+  const checkinId = `CHK-${cleanStudentId}-${sessionPrefix}-${now}`;
   const student = params.student;
 
   const newCheckin: TechXCheckin = {
     id: checkinId,
     student_id: cleanStudentId,
+    session: targetSession,
     checkin_type: params.checkin_type,
     checked_in_at: nowString,
     created_by: params.created_by || 'Entrance Desk Staff',
@@ -381,8 +441,8 @@ export async function recordCheckin(params: {
     phone: (student as any)?.phone || (student as any)?.mobile || ''
   };
 
-  // Optimistically update cache
-  const updatedCache = [newCheckin, ...currentCheckins.filter(c => c.student_id.toUpperCase() !== cleanStudentId)];
+  // Optimistically update cache (filter out existing only if matching the same student and session)
+  const updatedCache = [newCheckin, ...currentCheckins.filter(c => !(c.student_id.toUpperCase() === cleanStudentId && c.session === targetSession))];
   saveCachedCheckins(updatedCache);
 
   if (db) {
@@ -390,8 +450,12 @@ export async function recordCheckin(params: {
       // Double check in Firestore before writing to prevent race conditions
       const checkinDocRef = doc(db, 'techx_checkins', checkinId);
       
-      // Also query to make sure this student hasn't checked in
-      const q = query(collection(db, 'techx_checkins'), where('student_id', '==', cleanStudentId));
+      // Also query to make sure this student hasn't checked in for THIS session
+      const q = query(
+        collection(db, 'techx_checkins'),
+        where('student_id', '==', cleanStudentId),
+        where('session', '==', targetSession)
+      );
       const existingSnap = await getDocs(q);
       if (!existingSnap.empty) {
         const found = normalizeCheckin(existingSnap.docs[0].id, existingSnap.docs[0].data());
@@ -405,6 +469,7 @@ export async function recordCheckin(params: {
       await setDoc(checkinDocRef, {
         id: checkinId,
         student_id: cleanStudentId,
+        session: targetSession,
         checkin_type: params.checkin_type,
         checked_in_at: nowString,
         created_by: params.created_by || 'Entrance Desk Staff',
@@ -463,6 +528,7 @@ export async function registerWalkinStudent(data: {
   year_level: string;
   email: string;
   phone: string;
+  session?: CheckinSession;
   created_by?: string;
 }): Promise<{
   student: StudentRecord;
@@ -470,6 +536,7 @@ export async function registerWalkinStudent(data: {
 }> {
   const db = getCheckinFirestore();
   const now = Date.now();
+  const targetSession: CheckinSession = data.session || 'morning';
 
   // Generate unique ID format: TIP-TX-XXXXXX (random 6-digit number)
   const randomSixDigits = Math.floor(100000 + Math.random() * 900000).toString();
@@ -538,13 +605,16 @@ export async function registerWalkinStudent(data: {
     phone: cleanPhone,
     created_at: now,
     attendeeType: 'student',
-    isCheckedIn: true
+    isCheckedIn: true,
+    isMorningCheckedIn: targetSession === 'morning',
+    isAfternoonCheckedIn: targetSession === 'afternoon'
   };
 
-  // 2. Immediately record check-in in techx_checkins with checkin_type: 'walkin'
+  // 2. Immediately record check-in in techx_checkins with checkin_type: 'walkin' and designated session
   const checkinResult = await recordCheckin({
     student_id: generatedId,
     checkin_type: 'walkin',
+    session: targetSession,
     created_by: data.created_by || 'Walk-in Entrance Desk',
     student: studentRecord
   });

@@ -1160,6 +1160,10 @@ function App() {
           <Route path="/TechXRegistration" element={<PageTransition><TechXRegistration /></PageTransition>} />
           <Route path="/techx-checkin" element={<PageTransition><TechXRegistration /></PageTransition>} />
           <Route path="/techxcheckin" element={<PageTransition><TechXRegistration /></PageTransition>} />
+          <Route path="/techxtrigger" element={<PageTransition><TechXRegistration /></PageTransition>} />
+          <Route path="/TechXtrigger" element={<PageTransition><TechXRegistration /></PageTransition>} />
+          <Route path="/techx-trigger" element={<PageTransition><TechXRegistration /></PageTransition>} />
+          <Route path="/TechX-Trigger" element={<PageTransition><TechXRegistration /></PageTransition>} />
           
           {/* TechX Interactive Q&A System */}
           {/* 1. Participant Page (Primary: /techx-qa, with legacy aliases) */}
