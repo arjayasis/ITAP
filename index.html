@@ -8,6 +8,56 @@
     <meta property="og:description" content="Infocomm Technology Association of the Philippines (ITAP) official portal and TechX Summit 2026 real-time interactive Q&A system." />
     <link rel="icon" type="image/png" href="https://marketing.timcorp.net.ph/hubfs/ITAP/ITAPAsset 3@4x.png" />
     <title>ITAP | Welcome</title>
+    <script>
+      // Suppress unhandled errors originating from external browser extensions (e.g. MetaMask inpage.js)
+      (function() {
+        function isExtensionError(eventOrError) {
+          if (!eventOrError) return false;
+          try {
+            var msg = (
+              (eventOrError.message) || 
+              (eventOrError.reason && (eventOrError.reason.message || eventOrError.reason)) || 
+              (eventOrError.error && (eventOrError.error.message || eventOrError.error)) || 
+              eventOrError || 
+              ''
+            ).toString();
+            var stack = (
+              (eventOrError.filename) || 
+              (eventOrError.error && eventOrError.error.stack) || 
+              (eventOrError.reason && eventOrError.reason.stack) || 
+              ''
+            ).toString();
+            if (
+              msg.indexOf('MetaMask') !== -1 ||
+              msg.indexOf('Failed to connect to MetaMask') !== -1 ||
+              msg.indexOf('nkbihfbeogaeaoehlefnkodbefgpgknn') !== -1 ||
+              stack.indexOf('chrome-extension://') !== -1 ||
+              stack.indexOf('moz-extension://') !== -1 ||
+              stack.indexOf('inpage.js') !== -1
+            ) {
+              return true;
+            }
+          } catch (e) {}
+          return false;
+        }
+
+        window.addEventListener('error', function(event) {
+          if (isExtensionError(event)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+            return true;
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(event) {
+          if (isExtensionError(event)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+            return true;
+          }
+        }, true);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

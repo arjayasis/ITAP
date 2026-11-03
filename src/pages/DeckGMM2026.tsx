@@ -1393,7 +1393,7 @@ const DeckGMM2026 = ({ isPortrait = false }: { isPortrait?: boolean }) => {
                      transition={{ duration: 0.8 }}
                      className={`${isPortrait ? 'w-24 h-24' : 'w-20 h-20'} rounded-3xl ${event.color} text-white flex items-center justify-center mx-auto mb-8 shadow-lg`}
                   >
-                    {React.cloneElement(event.icon as React.ReactElement, { className: isPortrait ? "w-12 h-12" : "w-10 h-10" })}
+                    {React.cloneElement(event.icon as React.ReactElement<any>, { className: isPortrait ? "w-12 h-12" : "w-10 h-10" })}
                   </motion.div>
                   
                   <h3 className={`${isPortrait ? 'text-5xl' : 'text-5xl md:text-6xl'} font-bold mb-6 text-brand-ink`}>{event.title}</h3>

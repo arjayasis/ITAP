@@ -27,7 +27,8 @@ import {
   MapPin,
   Facebook,
   Calendar,
-  Share2
+  Share2,
+  Check
 } from 'lucide-react';
 import Membership from './pages/Membership';
 import Events from './pages/Events';
@@ -752,25 +753,54 @@ const Home = () => {
 
 const LatestEvents = () => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
 
   const latestEvents: Event[] = [
     {
       id: "2nd-gmm-2026-techx",
-      title: "ITAP 2nd General Membership Meeting 2026 @ T.I.P. Tech X Summit",
+      title: "TechX Summit 2026: Creating What’s Next — Empowering Future Tech Innovators",
+      subtitle: "October 15, 2026 | Technological Institute of the Philippines – Quezon City",
       date: "2026-10-15",
-      image: "https://marketing.timcorp.net.ph/hubfs/ITAP/techx%20for%20dark.png",
+      image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/itap_borad.png",
       venue: "T.I.P. Quezon City Anniversary Hall | 8:00 AM – 5:00 PM",
-      overview: `ITAP is proud to announce its 2nd General Membership Meeting for 2026 (2nd GMM 2026) in partnership with the T.I.P. Tech X Summit 2026 under the banner theme: “Creating What’s Next”.
+      videoUrl: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TIP%20-%20iTAP%20Summit%202026%20-%20TechX_2.mp4",
+      overview: `**October 15, 2026 | Technological Institute of the Philippines – Quezon City**
 
-Stronger Together. Innovating Tomorrow. Shaping the Future.
+The **TechX Summit 2026: Creating What’s Next** successfully brought together students, educators, industry leaders, and technology professionals for a day of innovation, collaboration, and knowledge sharing at the Technological Institute of the Philippines (T.I.P.) – Quezon City.
 
-Event Highlights & Key Pillars:
-• Network: Connect with top C-level ICT executives, enterprise leaders, and academic innovators.
-• Collaborate: Build strategic technology partnerships and co-develop transformative initiatives.
-• Innovate: Explore breakthroughs in AI, Cloud, Cybersecurity, and Emerging Technologies.
-• Transform: Pioneer high-impact industry policies and sustainable digital transformation.`
+The summit was officially launched by **T.I.P. President Angelo Quirino Lahoz** and **Infocomm Technology Association of the Philippines (ITAP) President Sunver Z. Bastes**, who also serves as President of Total Information Management Corporation (TIM), reinforcing their shared commitment to bridging academic excellence and industry innovation.
+
+### Industry Experts Shaping the Future of Technology
+
+The summit featured distinguished industry leaders who shared their expertise on emerging technologies, cybersecurity, leadership, and future career opportunities:
+
+- **Sherwin Pelayo**, Executive Director of the Analytics & AI Association of the Philippines, delivered the opening keynote, *“The Future of Tech Careers in the AI Era.”*
+- **Bernice Gretchel P. Garcia-Rama**, CEO of Digital Edge Philippines, discussed *“AI-Ready Data Centers: Powering the Future of Intelligent Technology.”*
+- **Martin Mondejar**, President & CEO of Black Bear Security Inc., and **Erwin V. Cayco**, Managed Service Monitoring and Operations Head at TIM, led the live demonstration, *“Cybersecurity Live: Attack & Defense Simulation.”*
+- **Sunver Z. Bastes**, President of ITAP and TIM, shared leadership insights through *“Leading High-Performing Tech Teams: Communication, Collaboration & Leadership.”*
+- **Kristian Rey R. Trinidad**, Chief Risk and Information Security Officer at TIM, discussed *“Trust by Design: IT Governance, Risk & Responsible Technology.”*
+- **Karla Congson**, Founder & CEO of Agentiiv, explored *“Human in the Lead: The Evolving AI Landscape.”*
+
+The summit also featured an industry roundtable on **“The Next 5 Years of Tech Careers: AI, Cloud, Cybersecurity, Data & Digital Innovation,”** with **Michael Ngan** of Lenovo Philippines, **Walter So** of HPE Philippines, **Romulo P. Cambaliza** of CIOs Philippines, and **Kristian Rey R. Trinidad** of TIM.
+
+Through expert-led discussions, interactive demonstrations, and industry engagement, participants gained valuable perspectives on emerging technologies and the skills needed to thrive in an increasingly digital world.
+
+Guided by its four pillars — **Network, Collaborate, Innovate, and Transform** — TechX Summit 2026 highlighted the importance of academe-industry collaboration in developing future-ready Filipino technology professionals.
+
+**Through initiatives like TechX Summit, ITAP continues to champion innovation, strengthen industry-academic partnerships, and empower the next generation of technology leaders to create what’s next.**`,
+      eventPhotos: [
+        "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/techx_students.png",
+        "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/lahoz.png",
+        "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/itap_borad.png",
+        "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/partners.png",
+        "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/garcia-rama.png",
+        "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/szb.png",
+        "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/trinidad.png",
+        "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/pelayo.png",
+        "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/mondejar.png"
+      ]
     },
     {
       id: "12th-golf-2026",
@@ -909,13 +939,18 @@ Recap Video: https://youtu.be/EFsuvbBv8AM`
                         }).catch(() => {});
                       } else {
                         navigator.clipboard.writeText(shareUrl);
-                        alert('Event link copied to clipboard!');
+                        setCopiedId(event.id);
+                        setTimeout(() => setCopiedId(null), 2000);
                       }
                     }}
-                    className="p-1.5 rounded-full bg-white/90 backdrop-blur-md text-brand-ink shadow-sm hover:bg-brand-cyan hover:text-brand-ink transition-colors"
-                    title="Share Event"
+                    className={`p-1.5 rounded-full backdrop-blur-md shadow-sm transition-colors ${
+                      copiedId === event.id 
+                        ? 'bg-emerald-500 text-white' 
+                        : 'bg-white/90 text-brand-ink hover:bg-brand-cyan hover:text-brand-ink'
+                    }`}
+                    title={copiedId === event.id ? "Link copied!" : "Share Event"}
                   >
-                    <Share2 className="w-3 h-3" />
+                    {copiedId === event.id ? <Check className="w-3 h-3" /> : <Share2 className="w-3 h-3" />}
                   </button>
                 </div>
               </div>
@@ -1133,6 +1168,9 @@ function App() {
           <Route path="/" element={<PageTransition><Home /></PageTransition>} />
           <Route path="/membership" element={<PageTransition><Membership /></PageTransition>} />
           <Route path="/events" element={<PageTransition><Events /></PageTransition>} />
+          <Route path="/event" element={<PageTransition><Events /></PageTransition>} />
+          <Route path="/Events" element={<PageTransition><Events /></PageTransition>} />
+          <Route path="/Event" element={<PageTransition><Events /></PageTransition>} />
           <Route path="/gmm2026" element={<PageTransition><GMM2026 /></PageTransition>} />
           <Route path="/deck-gmm2026" element={<PageTransition><div className="h-screen w-screen"><DeckGMM2026 /></div></PageTransition>} />
           <Route path="/2-3" element={<PageTransition><Page23 /></PageTransition>} />

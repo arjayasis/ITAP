@@ -622,6 +622,7 @@ export async function registerWalkinStudent(data: {
   const checkinRecord: TechXCheckin = checkinResult.checkin || {
     id: `CHK-${generatedId}-${now}`,
     student_id: generatedId,
+    session: targetSession,
     checkin_type: 'walkin',
     checked_in_at: new Date(now).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }),
     created_by: data.created_by || 'Walk-in Entrance Desk',

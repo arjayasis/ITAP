@@ -1,27 +1,53 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
-import { Calendar, MapPin, Image as ImageIcon, Clock, X, ExternalLink, Share2 } from 'lucide-react';
+import { Calendar, MapPin, Image as ImageIcon, Clock, X, ExternalLink, Share2, Play, Check, ArrowRight } from 'lucide-react';
 import { Event, EventModal } from '../components/EventModal';
 
 const eventsData: Event[] = [
   {
     id: "2nd-gmm-2026-techx",
-    title: "ITAP 2nd General Membership Meeting 2026 @ T.I.P. Tech X Summit",
+    title: "TechX Summit 2026: Creating What’s Next — Empowering Future Tech Innovators",
+    subtitle: "October 15, 2026 | Technological Institute of the Philippines – Quezon City",
     date: "2026-10-15",
-    image: "https://marketing.timcorp.net.ph/hubfs/ITAP/techx%20for%20dark.png",
+    image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/itap_borad.png",
     venue: "T.I.P. Quezon City Anniversary Hall | 8:00 AM – 5:00 PM",
-    overview: `ITAP is proud to announce its 2nd General Membership Meeting for 2026 (2nd GMM 2026) in partnership with the T.I.P. Tech X Summit 2026 under the banner theme: “Creating What’s Next”.
+    videoUrl: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TIP%20-%20iTAP%20Summit%202026%20-%20TechX_2.mp4",
+    overview: `**October 15, 2026 | Technological Institute of the Philippines – Quezon City**
 
-Stronger Together. Innovating Tomorrow. Shaping the Future.
+The **TechX Summit 2026: Creating What’s Next** successfully brought together students, educators, industry leaders, and technology professionals for a day of innovation, collaboration, and knowledge sharing at the Technological Institute of the Philippines (T.I.P.) – Quezon City.
 
-Event Highlights & Key Pillars:
-• Network: Connect with top C-level ICT executives, enterprise leaders, and academic innovators.
-• Collaborate: Build strategic technology partnerships and co-develop transformative initiatives.
-• Innovate: Explore breakthroughs in AI, Cloud, Cybersecurity, and Emerging Technologies.
-• Transform: Pioneer high-impact industry policies and sustainable digital transformation.
+The summit was officially launched by **T.I.P. President Angelo Quirino Lahoz** and **Infocomm Technology Association of the Philippines (ITAP) President Sunver Z. Bastes**, who also serves as President of Total Information Management Corporation (TIM), reinforcing their shared commitment to bridging academic excellence and industry innovation.
 
-Official RSVP & Registration Portal is now live at /GMM@TechXSummit2026.`
+### Industry Experts Shaping the Future of Technology
+
+The summit featured distinguished industry leaders who shared their expertise on emerging technologies, cybersecurity, leadership, and future career opportunities:
+
+- **Sherwin Pelayo**, Executive Director of the Analytics & AI Association of the Philippines, delivered the opening keynote, *“The Future of Tech Careers in the AI Era.”*
+- **Bernice Gretchel P. Garcia-Rama**, CEO of Digital Edge Philippines, discussed *“AI-Ready Data Centers: Powering the Future of Intelligent Technology.”*
+- **Martin Mondejar**, President & CEO of Black Bear Security Inc., and **Erwin V. Cayco**, Managed Service Monitoring and Operations Head at TIM, led the live demonstration, *“Cybersecurity Live: Attack & Defense Simulation.”*
+- **Sunver Z. Bastes**, President of ITAP and TIM, shared leadership insights through *“Leading High-Performing Tech Teams: Communication, Collaboration & Leadership.”*
+- **Kristian Rey R. Trinidad**, Chief Risk and Information Security Officer at TIM, discussed *“Trust by Design: IT Governance, Risk & Responsible Technology.”*
+- **Karla Congson**, Founder & CEO of Agentiiv, explored *“Human in the Lead: The Evolving AI Landscape.”*
+
+The summit also featured an industry roundtable on **“The Next 5 Years of Tech Careers: AI, Cloud, Cybersecurity, Data & Digital Innovation,”** with **Michael Ngan** of Lenovo Philippines, **Walter So** of HPE Philippines, **Romulo P. Cambaliza** of CIOs Philippines, and **Kristian Rey R. Trinidad** of TIM.
+
+Through expert-led discussions, interactive demonstrations, and industry engagement, participants gained valuable perspectives on emerging technologies and the skills needed to thrive in an increasingly digital world.
+
+Guided by its four pillars — **Network, Collaborate, Innovate, and Transform** — TechX Summit 2026 highlighted the importance of academe-industry collaboration in developing future-ready Filipino technology professionals.
+
+**Through initiatives like TechX Summit, ITAP continues to champion innovation, strengthen industry-academic partnerships, and empower the next generation of technology leaders to create what’s next.**`,
+    eventPhotos: [
+      "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/techx_students.png",
+      "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/lahoz.png",
+      "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/itap_borad.png",
+      "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/partners.png",
+      "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/garcia-rama.png",
+      "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/szb.png",
+      "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/trinidad.png",
+      "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/pelayo.png",
+      "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/mondejar.png"
+    ]
   },
   {
     id: "12th-golf-2026",
@@ -156,6 +182,25 @@ Recap Video: https://youtu.be/EFsuvbBv8AM`
 ];
 
 const EventCard: React.FC<{ event: Event, index: number, onOpen: () => void }> = ({ event, index, onOpen }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}${window.location.pathname}?id=${event.id}`;
+    const shareText = `Check out this ITAP event: ${event.title}`;
+    if (navigator.share) {
+      navigator.share({
+        title: event.title,
+        text: shareText,
+        url: shareUrl,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -163,15 +208,15 @@ const EventCard: React.FC<{ event: Event, index: number, onOpen: () => void }> =
       transition={{ delay: index * 0.1, duration: 0.5 }}
       viewport={{ once: true }}
       whileHover={{ y: -8 }}
-      className="group glass rounded-[32px] overflow-hidden border-white/10 hover:border-brand-cyan/30 transition-all duration-500 cursor-pointer flex flex-col h-full"
+      className="group bg-slate-900/95 rounded-[28px] overflow-hidden border border-slate-800/90 hover:border-brand-cyan/50 hover:bg-slate-900 transition-all duration-500 cursor-pointer flex flex-col h-full shadow-2xl hover:shadow-cyan-500/10 backdrop-blur-xl"
       onClick={onOpen}
     >
-      <div className="relative h-56 overflow-hidden shrink-0">
+      <div className="relative h-56 overflow-hidden shrink-0 bg-slate-950">
         {event.image ? (
           <img 
             src={event.image} 
             alt={event.title} 
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             referrerPolicy="no-referrer"
           />
         ) : (
@@ -179,54 +224,71 @@ const EventCard: React.FC<{ event: Event, index: number, onOpen: () => void }> =
             <img 
               src="https://marketing.timcorp.net.ph/hubfs/ITAP/ITAPAsset 6@4x.png" 
               alt="ITAP Logo Placeholder" 
-              className="max-h-full max-w-full object-contain opacity-20 transition-transform duration-700 group-hover:scale-110"
+              className="max-h-full max-w-full object-contain opacity-20 transition-transform duration-700 group-hover:scale-105"
               referrerPolicy="no-referrer"
             />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent opacity-80" />
         
-        <div className="absolute top-4 left-4 flex gap-2">
-          <div className="bg-slate-950/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-mono font-bold flex items-center gap-2 border border-white/10">
-            <Calendar className="w-3 h-3 text-brand-cyan" />
+        <div className="absolute top-4 left-4 flex flex-wrap gap-2 items-center">
+          <div className="bg-slate-950/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[11px] font-mono font-medium flex items-center gap-2 border border-white/10 shadow-lg">
+            <Calendar className="w-3.5 h-3.5 text-brand-cyan" />
             {new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
           </div>
+          {event.eventPhotos && event.eventPhotos.length > 0 && (
+            <div className="bg-slate-950/80 backdrop-blur-md text-brand-cyan px-2.5 py-1.5 rounded-full text-[11px] font-mono font-medium flex items-center gap-1.5 border border-white/10 shadow-lg">
+              <ImageIcon className="w-3.5 h-3.5" />
+              <span>{event.eventPhotos.length}</span>
+            </div>
+          )}
+          {event.videoUrl && (
+            <div className="bg-slate-950/80 backdrop-blur-md text-brand-cyan px-2.5 py-1.5 rounded-full text-[11px] font-mono font-medium flex items-center gap-1.5 border border-white/10 shadow-lg">
+              <Play className="w-3 h-3 fill-brand-cyan" />
+              <span>Video</span>
+            </div>
+          )}
+        </div>
+
+        <div className="absolute top-4 right-4">
           <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              const shareUrl = `${window.location.origin}${window.location.pathname}?id=${event.id}`;
-              const shareText = `Check out this ITAP event: ${event.title}`;
-              if (navigator.share) {
-                navigator.share({
-                  title: event.title,
-                  text: shareText,
-                  url: shareUrl,
-                }).catch(() => {});
-              } else {
-                navigator.clipboard.writeText(shareUrl);
-                alert('Event link copied to clipboard!');
-              }
-            }}
-            className="p-1.5 rounded-full bg-slate-950/60 backdrop-blur-md text-white border border-white/10 hover:bg-brand-cyan hover:text-brand-ink transition-colors"
+            onClick={handleShare}
+            className="p-2 rounded-full bg-slate-950/80 backdrop-blur-md text-white border border-white/10 hover:bg-brand-cyan hover:text-brand-ink transition-colors shadow-lg flex items-center justify-center relative"
             title="Share Event"
           >
-            <Share2 className="w-3 h-3" />
+            {copied ? (
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Share2 className="w-3.5 h-3.5" />
+            )}
+            {copied && (
+              <span className="absolute -bottom-7 right-0 text-[10px] bg-emerald-500 text-slate-950 font-bold px-2 py-0.5 rounded shadow whitespace-nowrap">
+                Copied!
+              </span>
+            )}
           </button>
         </div>
       </div>
 
-      <div className="p-8 flex flex-col flex-grow">
-        <h3 className="text-xl font-display font-bold text-slate-900 tracking-tight leading-tight mb-4 group-hover:text-brand-cyan transition-colors line-clamp-2">
+      <div className="p-7 flex flex-col flex-grow bg-slate-900/95">
+        <h3 className="text-xl font-display font-bold text-white tracking-tight leading-snug mb-2.5 group-hover:text-brand-cyan transition-colors line-clamp-2">
           {event.title}
         </h3>
         
-        <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-slate-500 text-xs font-mono">
-            <MapPin className="w-3 h-3" />
-            <span className="truncate max-w-[150px]">{event.venue !== 'N/A' ? event.venue : 'TBA'}</span>
+        {event.subtitle && (
+          <p className="text-xs font-mono text-slate-300 mb-4 line-clamp-2 leading-relaxed">
+            {event.subtitle}
+          </p>
+        )}
+        
+        <div className="mt-auto pt-5 border-t border-slate-800/80 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-slate-300 text-xs font-mono min-w-0">
+            <MapPin className="w-3.5 h-3.5 text-brand-cyan shrink-0" />
+            <span className="truncate">{event.venue !== 'N/A' ? event.venue : 'TBA'}</span>
           </div>
-          <div className="text-brand-cyan text-xs font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-            View Details
+          <div className="text-brand-cyan text-xs font-bold uppercase tracking-wider flex items-center gap-1 shrink-0 group-hover:translate-x-0.5 transition-transform">
+            <span>Details</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </div>
         </div>
       </div>
