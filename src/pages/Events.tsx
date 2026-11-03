@@ -211,16 +211,16 @@ const EventCard: React.FC<{ event: Event, index: number, onOpen: () => void }> =
       className="group bg-slate-900/95 rounded-[28px] overflow-hidden border border-slate-800/90 hover:border-brand-cyan/50 hover:bg-slate-900 transition-all duration-500 cursor-pointer flex flex-col h-full shadow-2xl hover:shadow-cyan-500/10 backdrop-blur-xl"
       onClick={onOpen}
     >
-      <div className="relative h-56 overflow-hidden shrink-0 bg-slate-950">
+      <div className="relative h-72 sm:h-80 overflow-hidden shrink-0 bg-slate-950 flex flex-col justify-between">
         {event.image ? (
           <img 
             src={event.image} 
             alt={event.title} 
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="w-full h-full bg-slate-950 flex items-center justify-center p-8">
+          <div className="absolute inset-0 w-full h-full bg-slate-950 flex items-center justify-center p-8">
             <img 
               src="https://marketing.timcorp.net.ph/hubfs/ITAP/ITAPAsset 6@4x.png" 
               alt="ITAP Logo Placeholder" 
@@ -229,31 +229,33 @@ const EventCard: React.FC<{ event: Event, index: number, onOpen: () => void }> =
             />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent opacity-80" />
+        {/* Subtle dark gradient overlay at the base to ensure high text legibility and contrast without obscuring people in the photo */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent pointer-events-none" />
         
-        <div className="absolute top-4 left-4 flex flex-wrap gap-2 items-center">
-          <div className="bg-slate-950/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[11px] font-mono font-medium flex items-center gap-2 border border-white/10 shadow-lg">
-            <Calendar className="w-3.5 h-3.5 text-brand-cyan" />
-            {new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+        {/* Top Badges */}
+        <div className="relative z-10 p-4 flex flex-wrap gap-2 items-center justify-between">
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="bg-slate-950/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[11px] font-mono font-medium flex items-center gap-2 border border-white/10 shadow-lg">
+              <Calendar className="w-3.5 h-3.5 text-brand-cyan" />
+              {new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+            </div>
+            {event.eventPhotos && event.eventPhotos.length > 0 && (
+              <div className="bg-slate-950/80 backdrop-blur-md text-brand-cyan px-2.5 py-1.5 rounded-full text-[11px] font-mono font-medium flex items-center gap-1.5 border border-white/10 shadow-lg">
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>{event.eventPhotos.length}</span>
+              </div>
+            )}
+            {event.videoUrl && (
+              <div className="bg-slate-950/80 backdrop-blur-md text-brand-cyan px-2.5 py-1.5 rounded-full text-[11px] font-mono font-medium flex items-center gap-1.5 border border-white/10 shadow-lg">
+                <Play className="w-3 h-3 fill-brand-cyan" />
+                <span>Video</span>
+              </div>
+            )}
           </div>
-          {event.eventPhotos && event.eventPhotos.length > 0 && (
-            <div className="bg-slate-950/80 backdrop-blur-md text-brand-cyan px-2.5 py-1.5 rounded-full text-[11px] font-mono font-medium flex items-center gap-1.5 border border-white/10 shadow-lg">
-              <ImageIcon className="w-3.5 h-3.5" />
-              <span>{event.eventPhotos.length}</span>
-            </div>
-          )}
-          {event.videoUrl && (
-            <div className="bg-slate-950/80 backdrop-blur-md text-brand-cyan px-2.5 py-1.5 rounded-full text-[11px] font-mono font-medium flex items-center gap-1.5 border border-white/10 shadow-lg">
-              <Play className="w-3 h-3 fill-brand-cyan" />
-              <span>Video</span>
-            </div>
-          )}
-        </div>
 
-        <div className="absolute top-4 right-4">
           <button 
             onClick={handleShare}
-            className="p-2 rounded-full bg-slate-950/80 backdrop-blur-md text-white border border-white/10 hover:bg-brand-cyan hover:text-brand-ink transition-colors shadow-lg flex items-center justify-center relative"
+            className="p-2 rounded-full bg-slate-950/80 backdrop-blur-md text-white border border-white/10 hover:bg-brand-cyan hover:text-brand-ink transition-colors shadow-lg flex items-center justify-center relative cursor-pointer"
             title="Share Event"
           >
             {copied ? (
@@ -268,28 +270,30 @@ const EventCard: React.FC<{ event: Event, index: number, onOpen: () => void }> =
             )}
           </button>
         </div>
+
+        {/* Event title text overlay placed over the bottom section of the image */}
+        <div className="relative z-10 p-5 sm:p-6">
+          <h3 className="text-lg sm:text-xl font-display font-bold text-white tracking-tight leading-snug drop-shadow-lg group-hover:text-brand-cyan transition-colors line-clamp-2">
+            {event.title}
+          </h3>
+          
+          {event.subtitle && (
+            <p className="text-xs font-mono text-slate-300 mt-1.5 line-clamp-1 leading-relaxed drop-shadow">
+              {event.subtitle}
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="p-7 flex flex-col flex-grow bg-slate-900/95">
-        <h3 className="text-xl font-display font-bold text-white tracking-tight leading-snug mb-2.5 group-hover:text-brand-cyan transition-colors line-clamp-2">
-          {event.title}
-        </h3>
-        
-        {event.subtitle && (
-          <p className="text-xs font-mono text-slate-300 mb-4 line-clamp-2 leading-relaxed">
-            {event.subtitle}
-          </p>
-        )}
-        
-        <div className="mt-auto pt-5 border-t border-slate-800/80 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-slate-300 text-xs font-mono min-w-0">
-            <MapPin className="w-3.5 h-3.5 text-brand-cyan shrink-0" />
-            <span className="truncate">{event.venue !== 'N/A' ? event.venue : 'TBA'}</span>
-          </div>
-          <div className="text-brand-cyan text-xs font-bold uppercase tracking-wider flex items-center gap-1 shrink-0 group-hover:translate-x-0.5 transition-transform">
-            <span>Details</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </div>
+      {/* Card Footer Bar */}
+      <div className="px-6 py-4 bg-slate-950/95 border-t border-slate-800/80 flex items-center justify-between gap-3 mt-auto">
+        <div className="flex items-center gap-2 text-slate-300 text-xs font-mono min-w-0">
+          <MapPin className="w-3.5 h-3.5 text-brand-cyan shrink-0" />
+          <span className="truncate">{event.venue !== 'N/A' ? event.venue : 'TBA'}</span>
+        </div>
+        <div className="text-brand-cyan text-xs font-bold uppercase tracking-wider flex items-center gap-1 shrink-0 group-hover:translate-x-0.5 transition-transform">
+          <span>Read Article</span>
+          <ArrowRight className="w-3.5 h-3.5" />
         </div>
       </div>
     </motion.div>

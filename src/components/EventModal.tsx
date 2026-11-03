@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Calendar, 
@@ -11,13 +11,16 @@ import {
   Linkedin, 
   Facebook, 
   Link as LinkIcon,
-  Play,
-  Image as ImageIcon,
-  ChevronLeft,
-  ChevronRight,
-  Maximize2,
-  Sparkles,
-  Check
+  Play, 
+  Image as ImageIcon, 
+  ChevronLeft, 
+  ChevronRight, 
+  Maximize2, 
+  Sparkles, 
+  Check,
+  ArrowLeft,
+  Building2,
+  BookmarkCheck
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -56,7 +59,7 @@ const parseFormattedInline = (str: string) => {
   return boldParts.map((bPart, bIdx) => {
     if (bPart.startsWith('**') && bPart.endsWith('**')) {
       return (
-        <strong key={bIdx} className="text-white font-bold">
+        <strong key={bIdx} className="text-white font-semibold">
           {bPart.slice(2, -2)}
         </strong>
       );
@@ -67,7 +70,7 @@ const parseFormattedInline = (str: string) => {
         {italicParts.map((iPart, iIdx) => {
           if (iPart.startsWith('*') && iPart.endsWith('*') && !iPart.startsWith('**')) {
             return (
-              <em key={iIdx} className="text-brand-cyan/90 font-medium italic">
+              <em key={iIdx} className="text-brand-cyan/95 font-medium italic">
                 {iPart.slice(1, -1)}
               </em>
             );
@@ -85,34 +88,37 @@ const renderFormattedOverview = (text: string) => {
   const paragraphs = text.split('\n\n');
 
   return (
-    <div className="space-y-4 text-slate-300 text-base sm:text-lg leading-relaxed">
+    <div className="space-y-6 text-slate-300 text-base sm:text-lg leading-relaxed">
       {paragraphs.map((para, pIdx) => {
         const trimmed = para.trim();
         if (!trimmed) return null;
 
-        // Check if paragraph is a heading (e.g. ### Title)
+        // Heading 3 (###)
         if (trimmed.startsWith('###')) {
           return (
-            <h4 key={pIdx} className="text-lg sm:text-xl font-display font-bold text-white text-brand-cyan pt-2 tracking-tight">
-              {parseFormattedInline(trimmed.replace(/^###\s*/, ''))}
-            </h4>
+            <div key={pIdx} className="pt-6 pb-2 border-b border-white/10">
+              <h3 className="text-xl sm:text-2xl font-display font-bold text-white flex items-center gap-2.5 tracking-tight">
+                <span className="w-2 h-2 rounded-full bg-brand-cyan shadow-[0_0_8px_rgba(0,210,255,0.8)]" />
+                <span>{parseFormattedInline(trimmed.replace(/^###\s*/, ''))}</span>
+              </h3>
+            </div>
           );
         }
 
-        // Check if paragraph contains bullet lines
+        // Bullet list
         const lines = trimmed.split('\n');
         const isBulletList = lines.some(l => l.trim().startsWith('*') || l.trim().startsWith('•') || l.trim().startsWith('-'));
 
         if (isBulletList) {
           return (
-            <ul key={pIdx} className="space-y-3 my-3 pl-1">
+            <ul key={pIdx} className="space-y-3.5 my-4 pl-1">
               {lines.map((line, lIdx) => {
                 const cleanLine = line.replace(/^[\*\•\-]\s*/, '').trim();
                 if (!cleanLine) return null;
                 return (
-                  <li key={lIdx} className="flex items-start gap-3">
-                    <span className="w-2 h-2 rounded-full bg-brand-cyan mt-2 shrink-0 shadow-[0_0_8px_rgba(0,210,255,0.6)]" />
-                    <span className="leading-relaxed">{parseFormattedInline(cleanLine)}</span>
+                  <li key={lIdx} className="flex items-start gap-3 bg-white/[0.02] border border-white/5 rounded-xl p-3.5 sm:p-4 hover:border-brand-cyan/30 transition-colors">
+                    <span className="w-2 h-2 rounded-full bg-brand-cyan mt-2 shrink-0 shadow-[0_0_8px_rgba(0,210,255,0.7)]" />
+                    <span className="leading-relaxed text-slate-200">{parseFormattedInline(cleanLine)}</span>
                   </li>
                 );
               })}
@@ -120,8 +126,9 @@ const renderFormattedOverview = (text: string) => {
           );
         }
 
+        // Standard paragraph
         return (
-          <p key={pIdx} className="whitespace-pre-line leading-relaxed">
+          <p key={pIdx} className={`leading-relaxed sm:leading-loose text-slate-300 ${pIdx === 0 ? 'text-lg sm:text-xl font-medium text-slate-100 border-l-2 border-brand-cyan pl-4 py-1' : ''}`}>
             {parseFormattedInline(trimmed)}
           </p>
         );
@@ -133,6 +140,34 @@ const renderFormattedOverview = (text: string) => {
 export const EventModal = ({ event, onClose }: EventModalProps) => {
   const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Lock body scroll while full screen article is open
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (activePhotoIndex !== null) {
+          setActivePhotoIndex(null);
+        } else {
+          onClose();
+        }
+      } else if (activePhotoIndex !== null && event.eventPhotos) {
+        if (e.key === 'ArrowLeft') {
+          setActivePhotoIndex((prev) => (prev! > 0 ? prev! - 1 : event.eventPhotos!.length - 1));
+        } else if (e.key === 'ArrowRight') {
+          setActivePhotoIndex((prev) => (prev! < event.eventPhotos!.length - 1 ? prev! + 1 : 0));
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activePhotoIndex, event.eventPhotos, onClose]);
 
   const shareUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}${window.location.pathname}?id=${event.id}`
@@ -170,290 +205,456 @@ export const EventModal = ({ event, onClose }: EventModalProps) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md"
-        onClick={onClose}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-[100] bg-slate-950 text-white overflow-y-auto w-full h-full"
       >
-        <motion.div
-          initial={{ scale: 0.92, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.92, opacity: 0, y: 20 }}
-          className="bg-slate-900 border border-white/10 rounded-[32px] w-full max-w-5xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header Image */}
-          <div className="relative h-56 sm:h-72 md:h-96 shrink-0 bg-slate-950">
-            {event.image ? (
-              <img 
-                src={event.image} 
-                alt={event.title} 
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="w-full h-full bg-slate-800 flex items-center justify-center p-12">
-                <img 
-                  src="https://marketing.timcorp.net.ph/hubfs/ITAP/ITAPAsset 6@4x.png" 
-                  alt="ITAP Logo Placeholder" 
-                  className="max-h-full max-w-full object-contain opacity-20"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-            )}
-            
-            {/* Top Close Button */}
-            <button 
+        {/* Sticky Top Navigation Bar */}
+        <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
               onClick={onClose}
-              className="absolute top-5 right-5 p-2.5 rounded-full bg-slate-950/70 text-white hover:bg-brand-cyan hover:text-brand-ink transition-all backdrop-blur-md border border-white/10 cursor-pointer shadow-lg z-10"
-              title="Close Modal"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white border border-white/10 text-xs sm:text-sm font-mono font-medium transition-colors cursor-pointer shrink-0"
+              title="Return to Events"
             >
-              <X className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4 text-brand-cyan" />
+              <span>Back to Events</span>
             </button>
+            <div className="hidden md:flex items-center gap-2 text-xs font-mono text-slate-400 truncate">
+              <span>/</span>
+              <span className="text-brand-cyan truncate max-w-md">{event.title}</span>
+            </div>
+          </div>
 
-            {/* Badges in Header */}
-            <div className="absolute bottom-5 left-5 right-5 flex flex-wrap items-center justify-between gap-2 z-10 pointer-events-none">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="bg-brand-cyan text-brand-ink px-4 py-1.5 rounded-full text-xs sm:text-sm font-mono font-bold flex items-center gap-2 shadow-lg backdrop-blur-md">
-                  <Calendar className="w-4 h-4" />
-                  {new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                </div>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Quick Share Buttons */}
+            <div className="hidden sm:flex items-center gap-1.5 pr-2 border-r border-white/10">
+              <button
+                onClick={() => handleShare('facebook')}
+                className="p-2 rounded-lg bg-white/5 hover:bg-[#1877f2] hover:text-white text-slate-300 transition-colors cursor-pointer"
+                title="Share on Facebook"
+              >
+                <Facebook className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleShare('twitter')}
+                className="p-2 rounded-lg bg-white/5 hover:bg-slate-700 hover:text-white text-slate-300 transition-colors cursor-pointer"
+                title="Share on X (Twitter)"
+              >
+                <Twitter className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleShare('linkedin')}
+                className="p-2 rounded-lg bg-white/5 hover:bg-[#0077b5] hover:text-white text-slate-300 transition-colors cursor-pointer"
+                title="Share on LinkedIn"
+              >
+                <Linkedin className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleShare('copy')}
+                className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                  copied ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/5 hover:bg-brand-cyan hover:text-brand-ink text-slate-300'
+                }`}
+                title={copied ? 'Link Copied!' : 'Copy Link'}
+              >
+                {copied ? <Check className="w-3.5 h-3.5" /> : <LinkIcon className="w-3.5 h-3.5" />}
+              </button>
+            </div>
 
-                {hasPhotos && (
-                  <div className="bg-slate-950/80 text-white border border-white/15 px-3 py-1.5 rounded-full text-xs font-mono font-medium flex items-center gap-1.5 shadow-lg backdrop-blur-md">
-                    <ImageIcon className="w-3.5 h-3.5 text-brand-cyan" />
-                    <span>{event.eventPhotos!.length} Photos</span>
+            {/* TechX Summit Direct Link */}
+            {event.id === '2nd-gmm-2026-techx' && (
+              <Link
+                to="/TechXSummit2026"
+                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-cyan text-brand-ink text-xs font-mono font-bold hover:bg-brand-teal transition-colors shadow-md"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>TechX Portal</span>
+              </Link>
+            )}
+
+            {/* Close Button */}
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full bg-white/5 hover:bg-red-500/20 hover:text-red-400 text-slate-300 border border-white/10 transition-colors cursor-pointer"
+              title="Close Full Screen View (Esc)"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </header>
+
+        {/* Full-Width Cover Image Hero (spans edge-to-edge of the page) */}
+        {event.image ? (
+          <div className="relative w-full overflow-hidden bg-slate-950 border-b border-white/10 min-h-[440px] sm:min-h-[520px] lg:min-h-[600px] flex flex-col justify-end">
+            {/* Background Cover Image */}
+            <img
+              src={event.image}
+              alt={event.title}
+              className="absolute inset-0 w-full h-full object-cover object-center"
+              referrerPolicy="no-referrer"
+            />
+
+            {/* Bottom-to-top subtle dark gradient overlay at the base (45-55%) for high legibility */}
+            <div className="absolute inset-x-0 bottom-0 h-[48%] md:h-[55%] bg-gradient-to-t from-slate-950 via-slate-950/75 to-transparent pointer-events-none z-10" />
+
+            {/* ONLY Event Title, Date, and Event Venue Inside Cover Image */}
+            <div className="relative z-20 w-full max-w-6xl mx-auto px-4 sm:px-8 pb-8 sm:pb-12 pt-6">
+              <div className="space-y-3 sm:space-y-4 max-w-4xl">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-black text-white tracking-tight leading-[1.15] drop-shadow-2xl">
+                  {event.title}
+                </h1>
+
+                <div className="flex flex-wrap items-center gap-y-2.5 gap-x-6 text-xs sm:text-sm md:text-base font-mono text-slate-200">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-brand-cyan shrink-0" />
+                    <span className="font-semibold text-white">
+                      {new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </span>
                   </div>
-                )}
+                  {event.venue && event.venue !== 'N/A' && (
+                    <>
+                      <span className="text-white/40 hidden sm:inline">•</span>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-brand-cyan shrink-0" />
+                        <span className="text-slate-200 font-medium">{event.venue}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
-                {(youtubeUrl || directVideoUrl) && (
-                  <div className="bg-slate-950/80 text-brand-cyan border border-brand-cyan/30 px-3 py-1.5 rounded-full text-xs font-mono font-medium flex items-center gap-1.5 shadow-lg backdrop-blur-md">
-                    <Play className="w-3.5 h-3.5 fill-brand-cyan" />
-                    <span>Recap Video</span>
+        {/* Article Body Container */}
+        <main className="w-full max-w-6xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
+          {/* Fallback Header when no cover image is provided */}
+          {!event.image && (
+            <div className="relative mb-10 sm:mb-14 p-8 sm:p-12 rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl bg-slate-900/90 backdrop-blur-xl space-y-6">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-black text-white tracking-tight leading-[1.12]">
+                {event.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-y-3 gap-x-6 pt-4 border-t border-white/10 text-xs sm:text-sm font-mono text-slate-300">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-brand-cyan shrink-0" />
+                  <span>{new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                </div>
+                {event.venue && event.venue !== 'N/A' && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-brand-cyan shrink-0" />
+                    <span>{event.venue}</span>
                   </div>
                 )}
               </div>
             </div>
+          )}
 
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-black/30 pointer-events-none" />
-          </div>
-
-          {/* Content */}
-          <div className="p-6 sm:p-10 overflow-y-auto custom-scrollbar flex-1">
-            <div className="flex flex-col lg:flex-row gap-8 lg:gap-10">
-              <div className="flex-1 space-y-8">
-                {/* Title and Metadata */}
-                <div>
-                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-white mb-3 tracking-tight leading-tight">
-                    {event.title}
-                  </h2>
-                  
-                  {event.subtitle && (
-                    <p className="text-base sm:text-lg font-mono text-brand-cyan mb-4 font-semibold">
-                      {event.subtitle}
-                    </p>
-                  )}
-
-                  <div className="flex flex-wrap gap-4 sm:gap-6 pt-2 border-t border-white/10">
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <MapPin className="w-4 h-4 text-brand-cyan shrink-0" />
-                      <span className="text-xs sm:text-sm">{event.venue !== 'N/A' ? event.venue : 'To be announced'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <Clock className="w-4 h-4 text-brand-cyan shrink-0" />
-                      <span className="text-xs sm:text-sm">{new Date(event.date).toLocaleDateString('en-US', { weekday: 'long' })}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Event Highlights & Overview */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-brand-cyan animate-pulse" />
-                    <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-brand-cyan font-bold">
-                      Event Highlights & Recap
-                    </h3>
-                  </div>
-                  <div className="p-5 sm:p-6 rounded-2xl bg-white/[0.03] border border-white/10">
-                    {renderFormattedOverview(event.overview)}
-                  </div>
-                </div>
-
-                {/* Video Section (MP4 Direct Video or YouTube Embed) */}
-                {(directVideoUrl || youtubeUrl) && (
-                  <div className="space-y-4 pt-4 border-t border-white/10">
-                    <div className="flex items-center gap-2">
-                      <Play className="w-4 h-4 text-brand-cyan fill-brand-cyan" />
-                      <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-brand-cyan font-bold">
-                        Event Recap Video
-                      </h3>
-                    </div>
-
-                    <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black">
-                      {directVideoUrl ? (
-                        <video
-                          src={directVideoUrl}
-                          controls
-                          playsInline
-                          preload="metadata"
-                          className="w-full h-full object-contain bg-black"
-                          poster={event.image || undefined}
-                        >
-                          Your browser does not support the video tag.
-                        </video>
-                      ) : (
-                        <iframe
-                          src={youtubeUrl!}
-                          title={event.title}
-                          className="absolute top-0 left-0 w-full h-full border-0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                          allowFullScreen
-                        />
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Event Photo Gallery */}
-                {hasPhotos && (
-                  <div className="space-y-4 pt-4 border-t border-white/10">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4 text-brand-cyan" />
-                        <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-brand-cyan font-bold">
-                          Official Event Photo Gallery
-                        </h3>
-                      </div>
-                      <span className="text-xs font-mono text-slate-400">
-                        {event.eventPhotos!.length} Photos
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-                      {event.eventPhotos!.map((photoUrl, pIdx) => (
-                        <div
-                          key={pIdx}
-                          onClick={() => setActivePhotoIndex(pIdx)}
-                          className="group relative aspect-[4/3] rounded-xl overflow-hidden border border-white/10 bg-slate-950 cursor-pointer shadow-md hover:border-brand-cyan/50 transition-all hover:scale-[1.02]"
-                        >
-                          <img
-                            src={photoUrl}
-                            alt={`Event Photo ${pIdx + 1}`}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <span className="p-2 rounded-full bg-slate-950/80 text-brand-cyan border border-brand-cyan/40">
-                              <Maximize2 className="w-4 h-4" />
-                            </span>
-                          </div>
-                          <div className="absolute bottom-1.5 right-1.5 px-2 py-0.5 rounded-md bg-black/70 text-[10px] font-mono text-white/90">
-                            #{pIdx + 1}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+          {/* The Rest of the Info Placed OUTSIDE the Cover Image */}
+          <div className="mb-10 pb-8 border-b border-white/10 space-y-4">
+            {/* Top Badges & Edition */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <span className="text-[11px] sm:text-xs font-mono uppercase tracking-[0.2em] text-brand-cyan font-bold bg-brand-cyan/10 border border-brand-cyan/30 px-3 py-1.5 rounded-full shadow-sm">
+                  ITAP Official Article & Proceedings
+                </span>
+                <span className="text-[11px] sm:text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Official Archives
+                </span>
               </div>
 
-              {/* Sidebar */}
-              <div className="lg:w-72 shrink-0 space-y-6">
-                {/* Event Status Card */}
-                <div className="p-5 sm:p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                  <h4 className="text-xs font-mono uppercase tracking-widest text-slate-400">Event Status</h4>
-                  <div className="flex items-center gap-2 text-emerald-400">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-sm font-bold font-mono">Successfully Completed</span>
-                  </div>
-                  <p className="text-xs text-slate-400 leading-relaxed font-mono">
-                    Official summit archives and proceedings preserved by ITAP.
-                  </p>
-                </div>
+              <span className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-xs font-mono text-slate-300 shadow-sm">
+                {new Date(event.date).getFullYear()} Edition
+              </span>
+            </div>
 
-                {/* TechX Specific Portal Access */}
-                {event.id === '2nd-gmm-2026-techx' && (
-                  <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-brand-cyan/10 to-brand-blue/10 border border-brand-cyan/30 space-y-3">
-                    <div className="flex items-center gap-2 text-brand-cyan">
-                      <Sparkles className="w-4 h-4" />
-                      <h4 className="text-xs font-mono uppercase tracking-widest font-bold">TechX Portal</h4>
+            {/* Subtitle if available */}
+            {event.subtitle && (
+              <p className="text-base sm:text-lg font-mono text-brand-cyan/90 font-medium leading-relaxed">
+                {event.subtitle}
+              </p>
+            )}
+
+            {/* Author, Photo & Video Indicators */}
+            <div className="flex flex-wrap items-center gap-y-2.5 gap-x-6 pt-2 text-xs sm:text-sm font-mono text-slate-300">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-brand-cyan shrink-0" />
+                <span>ITAP Communications & Secretariat</span>
+              </div>
+              {hasPhotos && (
+                <div className="flex items-center gap-1.5 text-slate-300">
+                  <ImageIcon className="w-4 h-4 text-brand-cyan shrink-0" />
+                  <span>{event.eventPhotos!.length} Photos in Gallery</span>
+                </div>
+              )}
+              {(directVideoUrl || youtubeUrl) && (
+                <div className="flex items-center gap-1.5 text-slate-300">
+                  <Play className="w-4 h-4 text-brand-cyan fill-brand-cyan shrink-0" />
+                  <span>Video Coverage Available</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Editorial Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            {/* Main Article Content (8 columns) */}
+            <article className="lg:col-span-8 space-y-10">
+              {/* Formatted Article Prose */}
+              <div className="prose prose-invert max-w-none">
+                {renderFormattedOverview(event.overview)}
+              </div>
+
+              {/* Video Section */}
+              {(directVideoUrl || youtubeUrl) && (
+                <div className="space-y-4 pt-8 border-t border-white/10">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-lg bg-brand-cyan/10 border border-brand-cyan/30 text-brand-cyan">
+                      <Play className="w-4 h-4 fill-brand-cyan" />
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed font-mono">
-                      Explore the live attendee registry, conference agenda, and check-in portal.
-                    </p>
-                    <Link
-                      to="/TechXSummit2026"
-                      className="w-full py-3 rounded-xl bg-brand-cyan text-brand-ink font-mono font-bold text-xs flex items-center justify-center gap-2 hover:bg-brand-teal transition-colors shadow-lg"
-                    >
-                      <span>Visit TechX Portal</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </Link>
+                    <div>
+                      <h2 className="text-lg font-display font-bold text-white tracking-tight">
+                        Official Event Recap Video
+                      </h2>
+                      <p className="text-xs font-mono text-slate-400">
+                        Watch highlights and milestone moments from the summit
+                      </p>
+                    </div>
                   </div>
-                )}
 
-                {/* Share Event Card */}
-                <div className="p-5 sm:p-6 rounded-2xl bg-white/5 border border-white/10">
-                  <h4 className="text-xs font-mono uppercase tracking-widest text-slate-400 mb-3">Share Event</h4>
-                  <div className="grid grid-cols-4 gap-2">
-                    <button 
-                      onClick={() => handleShare('facebook')}
-                      className="p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-brand-blue transition-all flex items-center justify-center cursor-pointer"
-                      title="Share on Facebook"
-                    >
-                      <Facebook className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => handleShare('twitter')}
-                      className="p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center cursor-pointer"
-                      title="Share on Twitter"
-                    >
-                      <Twitter className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => handleShare('linkedin')}
-                      className="p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-[#0077b5] transition-all flex items-center justify-center cursor-pointer"
-                      title="Share on LinkedIn"
-                    >
-                      <Linkedin className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => handleShare('copy')}
-                      className={`p-2.5 rounded-xl transition-all flex items-center justify-center cursor-pointer ${
-                        copied ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-brand-cyan hover:text-brand-ink'
-                      }`}
-                      title={copied ? 'Copied!' : 'Copy Link'}
-                    >
-                      {copied ? <Check className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />}
-                    </button>
+                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black">
+                    {directVideoUrl ? (
+                      <video
+                        src={directVideoUrl}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="w-full h-full object-contain bg-black"
+                        poster={event.image || undefined}
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    ) : (
+                      <iframe
+                        src={youtubeUrl!}
+                        title={event.title}
+                        className="absolute top-0 left-0 w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    )}
                   </div>
                 </div>
+              )}
 
-                {/* Action Button */}
-                <button 
-                  className={`w-full py-3.5 rounded-xl font-mono text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+              {/* Photo Gallery Grid */}
+              {hasPhotos && (
+                <div className="space-y-5 pt-8 border-t border-white/10">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-lg bg-brand-cyan/10 border border-brand-cyan/30 text-brand-cyan">
+                        <ImageIcon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-display font-bold text-white tracking-tight">
+                          Summit Photo Gallery
+                        </h2>
+                        <p className="text-xs font-mono text-slate-400">
+                          Click any photo to view full resolution
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/5 border border-white/10 text-brand-cyan">
+                      {event.eventPhotos!.length} Photos
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                    {event.eventPhotos!.map((photoUrl, pIdx) => (
+                      <div
+                        key={pIdx}
+                        onClick={() => setActivePhotoIndex(pIdx)}
+                        className="group relative aspect-[4/3] rounded-xl overflow-hidden border border-white/10 bg-slate-900 cursor-pointer shadow-md hover:border-brand-cyan transition-all hover:scale-[1.02]"
+                      >
+                        <img
+                          src={photoUrl}
+                          alt={`Summit Photo ${pIdx + 1}`}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <span className="p-2.5 rounded-full bg-brand-cyan text-brand-ink shadow-lg">
+                            <Maximize2 className="w-4 h-4" />
+                          </span>
+                        </div>
+                        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/70 text-[10px] font-mono text-white/90">
+                          Photo #{pIdx + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom Return Button */}
+              <div className="pt-8 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
+                <button
+                  onClick={onClose}
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-mono text-xs font-bold transition-all border border-white/10 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4 text-brand-cyan" />
+                  <span>Back to All Events</span>
+                </button>
+
+                <button
+                  onClick={() => handleShare('copy')}
+                  className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer border ${
                     copied 
                       ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
-                      : 'bg-white/10 hover:bg-white/15 text-white border-white/15'
+                      : 'bg-brand-cyan text-brand-ink hover:bg-brand-teal border-transparent shadow-md'
                   }`}
-                  onClick={() => {
-                    handleShare('copy');
-                  }}
                 >
                   {copied ? (
                     <>
                       <Check className="w-4 h-4 text-emerald-400" />
-                      <span>Link Copied to Clipboard!</span>
+                      <span>Article Link Copied!</span>
                     </>
                   ) : (
                     <>
-                      <Share2 className="w-4 h-4 text-brand-cyan" />
-                      <span>Share Recap Link</span>
+                      <Share2 className="w-4 h-4" />
+                      <span>Share Article</span>
                     </>
                   )}
                 </button>
               </div>
-            </div>
+            </article>
+
+            {/* Sidebar / Context Column (4 columns) */}
+            <aside className="lg:col-span-4 space-y-6">
+              {/* Event Metadata Card */}
+              <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
+                <h4 className="text-xs font-mono uppercase tracking-widest text-slate-400">
+                  Event Information
+                </h4>
+                
+                <div className="space-y-3 font-mono text-xs text-slate-300">
+                  <div className="flex items-start gap-3">
+                    <Calendar className="w-4 h-4 text-brand-cyan mt-0.5 shrink-0" />
+                    <div>
+                      <div className="text-slate-400 text-[10px]">Date</div>
+                      <div className="font-semibold text-white">
+                        {new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-4 h-4 text-brand-cyan mt-0.5 shrink-0" />
+                    <div>
+                      <div className="text-slate-400 text-[10px]">Venue / Location</div>
+                      <div className="text-white">
+                        {event.venue !== 'N/A' ? event.venue : 'Official Venue'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <BookmarkCheck className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                    <div>
+                      <div className="text-slate-400 text-[10px]">Status</div>
+                      <div className="text-emerald-400 font-semibold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        Completed & Archived
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* TechX Specific Portal Card */}
+              {event.id === '2nd-gmm-2026-techx' && (
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-brand-cyan/15 via-brand-blue/10 to-transparent border border-brand-cyan/30 space-y-4">
+                  <div className="flex items-center gap-2 text-brand-cyan">
+                    <Sparkles className="w-5 h-5" />
+                    <h4 className="text-xs font-mono uppercase tracking-widest font-bold">TechX Summit Portal</h4>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed font-mono">
+                    Access the complete event registry, live attendee tracker, schedule, and speaker line-up.
+                  </p>
+                  <div className="space-y-2">
+                    <Link
+                      to="/TechXSummit2026"
+                      className="w-full py-3 rounded-xl bg-brand-cyan text-brand-ink font-mono font-bold text-xs flex items-center justify-center gap-2 hover:bg-brand-teal transition-colors shadow-lg"
+                    >
+                      <span>Visit TechX Summit Hub</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </Link>
+                    <Link
+                      to="/techx-registration"
+                      className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-mono text-xs flex items-center justify-center gap-2 transition-colors border border-white/10"
+                    >
+                      <span>Check-In & Registration Portal</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* Social Share Card */}
+              <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
+                <h4 className="text-xs font-mono uppercase tracking-widest text-slate-400">
+                  Share This Article
+                </h4>
+                <div className="grid grid-cols-4 gap-2">
+                  <button 
+                    onClick={() => handleShare('facebook')}
+                    className="p-3 rounded-xl bg-white/5 text-slate-300 hover:text-white hover:bg-[#1877f2] transition-colors flex items-center justify-center cursor-pointer"
+                    title="Share on Facebook"
+                  >
+                    <Facebook className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleShare('twitter')}
+                    className="p-3 rounded-xl bg-white/5 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors flex items-center justify-center cursor-pointer"
+                    title="Share on X (Twitter)"
+                  >
+                    <Twitter className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleShare('linkedin')}
+                    className="p-3 rounded-xl bg-white/5 text-slate-300 hover:text-white hover:bg-[#0077b5] transition-colors flex items-center justify-center cursor-pointer"
+                    title="Share on LinkedIn"
+                  >
+                    <Linkedin className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleShare('copy')}
+                    className={`p-3 rounded-xl transition-colors flex items-center justify-center cursor-pointer ${
+                      copied ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/5 text-slate-300 hover:text-white hover:bg-brand-cyan hover:text-brand-ink'
+                    }`}
+                    title={copied ? 'Link Copied!' : 'Copy Link'}
+                  >
+                    {copied ? <Check className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* ITAP About Callout */}
+              <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
+                <div className="text-xs font-mono text-slate-400 uppercase tracking-widest">About ITAP</div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  The Infocomm Technology Association of the Philippines (ITAP) unites ICT leaders, innovators, and academia to champion technology excellence and sustainable progress.
+                </p>
+                <Link
+                  to="/membership"
+                  className="inline-flex items-center gap-1.5 text-xs font-mono text-brand-cyan hover:underline pt-1"
+                >
+                  <span>Learn about membership</span>
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
+              </div>
+            </aside>
           </div>
-        </motion.div>
+        </main>
       </motion.div>
 
       {/* Lightbox Modal for Photo Gallery */}
@@ -503,7 +704,7 @@ export const EventModal = ({ event, onClose }: EventModalProps) => {
               <div className="relative rounded-2xl overflow-hidden border border-white/15 bg-black shadow-2xl max-h-[80vh] flex items-center justify-center">
                 <img
                   src={event.eventPhotos[activePhotoIndex]}
-                  alt={`Event Photo ${activePhotoIndex + 1}`}
+                  alt={`Summit Photo ${activePhotoIndex + 1}`}
                   className="max-h-[80vh] max-w-full object-contain"
                   referrerPolicy="no-referrer"
                 />
@@ -520,4 +721,3 @@ export const EventModal = ({ event, onClose }: EventModalProps) => {
     </>
   );
 };
-
