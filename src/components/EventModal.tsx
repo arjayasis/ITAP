@@ -16,7 +16,6 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Maximize2, 
-  Sparkles, 
   Check,
   ArrowLeft,
   Building2,
@@ -259,17 +258,6 @@ export const EventModal = ({ event, onClose }: EventModalProps) => {
                 {copied ? <Check className="w-3.5 h-3.5" /> : <LinkIcon className="w-3.5 h-3.5" />}
               </button>
             </div>
-
-            {/* TechX Summit Direct Link */}
-            {event.id === '2nd-gmm-2026-techx' && (
-              <Link
-                to="/TechXSummit2026"
-                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-cyan text-brand-ink text-xs font-mono font-bold hover:bg-brand-teal transition-colors shadow-md"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>TechX Portal</span>
-              </Link>
-            )}
 
             {/* Close Button */}
             <button
@@ -570,34 +558,6 @@ export const EventModal = ({ event, onClose }: EventModalProps) => {
                   </div>
                 </div>
               </div>
-
-              {/* TechX Specific Portal Card */}
-              {event.id === '2nd-gmm-2026-techx' && (
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-brand-cyan/15 via-brand-blue/10 to-transparent border border-brand-cyan/30 space-y-4">
-                  <div className="flex items-center gap-2 text-brand-cyan">
-                    <Sparkles className="w-5 h-5" />
-                    <h4 className="text-xs font-mono uppercase tracking-widest font-bold">TechX Summit Portal</h4>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed font-mono">
-                    Access the complete event registry, live attendee tracker, schedule, and speaker line-up.
-                  </p>
-                  <div className="space-y-2">
-                    <Link
-                      to="/TechXSummit2026"
-                      className="w-full py-3 rounded-xl bg-brand-cyan text-brand-ink font-mono font-bold text-xs flex items-center justify-center gap-2 hover:bg-brand-teal transition-colors shadow-lg"
-                    >
-                      <span>Visit TechX Summit Hub</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </Link>
-                    <Link
-                      to="/techx-registration"
-                      className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-mono text-xs flex items-center justify-center gap-2 transition-colors border border-white/10"
-                    >
-                      <span>Check-In & Registration Portal</span>
-                    </Link>
-                  </div>
-                </div>
-              )}
 
               {/* Social Share Card */}
               <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">

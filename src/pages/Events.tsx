@@ -8,14 +8,11 @@ const eventsData: Event[] = [
   {
     id: "2nd-gmm-2026-techx",
     title: "TechX Summit 2026: Creating What’s Next — Empowering Future Tech Innovators",
-    subtitle: "October 15, 2026 | Technological Institute of the Philippines – Quezon City",
     date: "2026-10-15",
     image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/itap_borad.png",
     venue: "T.I.P. Quezon City Anniversary Hall | 8:00 AM – 5:00 PM",
     videoUrl: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TIP%20-%20iTAP%20Summit%202026%20-%20TechX_2.mp4",
-    overview: `**October 15, 2026 | Technological Institute of the Philippines – Quezon City**
-
-The **TechX Summit 2026: Creating What’s Next** successfully brought together students, educators, industry leaders, and technology professionals for a day of innovation, collaboration, and knowledge sharing at the Technological Institute of the Philippines (T.I.P.) – Quezon City.
+    overview: `The **TechX Summit 2026: Creating What’s Next** successfully brought together students, educators, industry leaders, and technology professionals for a day of innovation, collaboration, and knowledge sharing at the Technological Institute of the Philippines (T.I.P.) – Quezon City.
 
 The summit was officially launched by **T.I.P. President Angelo Quirino Lahoz** and **Infocomm Technology Association of the Philippines (ITAP) President Sunver Z. Bastes**, who also serves as President of Total Information Management Corporation (TIM), reinforcing their shared commitment to bridging academic excellence and industry innovation.
 
