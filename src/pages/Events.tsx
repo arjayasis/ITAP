@@ -20,33 +20,28 @@ The summit was officially launched by **T.I.P. President Angelo Quirino Lahoz** 
 
 In his remarks, Bastes emphasized the importance of sharing practical industry knowledge with the next generation of technology professionals.
 
-*“All the knowledge that we are supposed to share today is not to reinvent things, but these are the things that we see that could add value as you move forward,”* Bastes said.
+“All the knowledge that we are supposed to share today is not to reinvent things, but these are the things that we see that could add value as you move forward,” Bastes said.
 
 T.I.P. President Angelo Quirino Lahoz likewise highlighted the importance of combining technical expertise with sound judgment and responsibility.
 
-*“At T.I.P., we have always believed that technology education is not only about mastering tools. It is also about shaping people who use those tools wisely, build them responsibly, and lead others with confidence,”* Lahoz said.
+“At T.I.P., we have always believed that technology education is not only about mastering tools. It is also about shaping people who use those tools wisely, build them responsibly, and lead others with confidence,” Lahoz said.
 
 ## Industry Experts Shaping the Future of Technology
 
 The summit featured distinguished industry leaders who shared valuable insights into emerging technologies, digital infrastructure, cybersecurity, responsible innovation, and leadership:
 
 - **Sherwin Pelayo** — Executive Director, Analytics & AI Association of the Philippines
-  *The Future of Tech Careers in the AI Era* (Opening Keynote)
-
+  The Future of Tech Careers in the AI Era
 - **Bernice Gretchel P. Garcia-Rama** — Chief Executive Officer, Digital Edge Philippines
-  *AI-Ready Data Centers: Powering the Future of Intelligent Technology*
-
+  AI-Ready Data Centers: Powering the Future of Intelligent Technology
 - **Martin Mondejar** — President & CEO, Black Bear Security Inc., and **Erwin V. Cayco** — Managed Service Monitoring and Operations Head, TIM
-  *Cybersecurity Live: Attack & Defense Simulation*
-
+  Cybersecurity Live: Attack & Defense Simulation
 - **Sunver Z. Bastes** — President, ITAP and TIM
-  *Leading High-Performing Tech Teams: Communication, Collaboration & Leadership*
-
+  Leading High-Performing Tech Teams: Communication, Collaboration & Leadership
 - **Kristian Rey R. Trinidad** — Chief Risk and Information Security Officer, TIM
-  *Trust by Design: IT Governance, Risk & Responsible Technology*
-
+  Trust by Design: IT Governance, Risk & Responsible Technology
 - **Karla Congson** — Founder & CEO, Agentiiv
-  *Human in the Lead: The Evolving AI Landscape*
+  Human in the Lead: The Evolving AI Landscape
 
 ### Industry Roundtable: The Next 5 Years of Tech Careers
 

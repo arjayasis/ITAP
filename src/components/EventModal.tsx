@@ -54,7 +54,10 @@ const isDirectVideo = (url?: string) => {
 
 // Rich text renderer for markdown headings, bold, italics, and bullet points
 const parseFormattedInline = (str: string) => {
-  const boldParts = str.split(/(\*\*[^*]+\*\*)/g);
+  if (!str) return null;
+  // Clean stray single asterisks
+  const cleanStr = str.replace(/(?<!\*)\*(?!\*)/g, '');
+  const boldParts = cleanStr.split(/(\*\*[^*]+\*\*)/g);
   return boldParts.map((bPart, bIdx) => {
     if (bPart.startsWith('**') && bPart.endsWith('**')) {
       return (
@@ -63,21 +66,7 @@ const parseFormattedInline = (str: string) => {
         </strong>
       );
     }
-    const italicParts = bPart.split(/(\*[^*]+\*)/g);
-    return (
-      <React.Fragment key={bIdx}>
-        {italicParts.map((iPart, iIdx) => {
-          if (iPart.startsWith('*') && iPart.endsWith('*') && !iPart.startsWith('**')) {
-            return (
-              <em key={iIdx} className="text-brand-cyan/95 font-medium italic">
-                {iPart.slice(1, -1)}
-              </em>
-            );
-          }
-          return iPart;
-        })}
-      </React.Fragment>
-    );
+    return bPart;
   });
 };
 
@@ -107,18 +96,16 @@ const renderFormattedOverview = (text: string) => {
 
         // Bullet list
         const lines = trimmed.split('\n');
-        const isBulletList = lines.some(l => {
-          const t = l.trim();
-          return t.startsWith('*') || t.startsWith('•') || t.startsWith('-');
-        });
+        const isBulletMarker = (l: string) => /^([-•+]|\*(?!\*))\s+/.test(l);
+        const isBulletList = lines.some(l => isBulletMarker(l.trim()));
 
         if (isBulletList) {
           const items: string[] = [];
           for (const rawLine of lines) {
             const line = rawLine.trim();
             if (!line) continue;
-            if (line.startsWith('*') || line.startsWith('•') || line.startsWith('-')) {
-              items.push(line.replace(/^[\*\•\-]\s*/, '').trim());
+            if (isBulletMarker(line)) {
+              items.push(line.replace(/^([-•+]|\*(?!\*))\s+/, '').trim());
             } else if (items.length > 0) {
               items[items.length - 1] += '\n' + line;
             } else {
@@ -133,12 +120,27 @@ const renderFormattedOverview = (text: string) => {
                 return (
                   <li key={iIdx} className="flex items-start gap-3 bg-white/[0.02] border border-white/5 rounded-xl p-3.5 sm:p-4 hover:border-brand-cyan/30 transition-colors">
                     <span className="w-2 h-2 rounded-full bg-brand-cyan mt-2 shrink-0 shadow-[0_0_8px_rgba(0,210,255,0.7)]" />
-                    <div className="leading-relaxed text-slate-200 space-y-1">
-                      {subLines.map((sLine, sIdx) => (
-                        <div key={sIdx} className={sIdx > 0 ? "text-slate-400 text-sm sm:text-base font-normal pl-0.5" : ""}>
-                          {parseFormattedInline(sLine)}
-                        </div>
-                      ))}
+                    <div className="leading-relaxed text-slate-200 space-y-1.5 w-full">
+                      {subLines.map((sLine, sIdx) => {
+                        if (sIdx === 0) {
+                          return (
+                            <div key={sIdx} className="font-medium text-slate-100">
+                              {parseFormattedInline(sLine)}
+                            </div>
+                          );
+                        }
+                        const cleanTopic = sLine.replace(/^topic:\s*/i, '').trim();
+                        return (
+                          <div key={sIdx} className="text-sm sm:text-base font-normal pt-1 flex items-center gap-2 flex-wrap">
+                            <span className="text-[11px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-md bg-brand-cyan/10 border border-brand-cyan/25 text-brand-cyan shadow-sm">
+                              Topic
+                            </span>
+                            <span className="text-slate-300 font-medium">
+                              {parseFormattedInline(cleanTopic)}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </li>
                 );
@@ -149,10 +151,11 @@ const renderFormattedOverview = (text: string) => {
 
         // Quote block (starts with *“ or “)
         if (trimmed.startsWith('*“') || trimmed.startsWith('“')) {
+          const cleanQuote = trimmed.replace(/^\*“/, '“').replace(/”\*/, '”');
           return (
             <div key={pIdx} className="my-5 p-4 sm:p-5 rounded-xl bg-gradient-to-r from-brand-cyan/10 via-brand-cyan/[0.03] to-transparent border-l-4 border-brand-cyan shadow-inner">
               <p className="text-base sm:text-lg leading-relaxed text-slate-200">
-                {parseFormattedInline(trimmed)}
+                {parseFormattedInline(cleanQuote)}
               </p>
             </div>
           );
