@@ -7,33 +7,63 @@ import { Event, EventModal } from '../components/EventModal';
 const eventsData: Event[] = [
   {
     id: "2nd-gmm-2026-techx",
-    title: "TechX Summit 2026: Creating What’s Next — Empowering Future Tech Innovators",
+    title: "Preparing for What’s Next: TechX Summit 2026 Explores AI, Digital Infrastructure, and Future Tech Careers",
     date: "2026-10-15",
     image: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/itap_borad.png",
     venue: "T.I.P. Quezon City Anniversary Hall | 8:00 AM – 5:00 PM",
     videoUrl: "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TIP%20-%20iTAP%20Summit%202026%20-%20TechX_2.mp4",
-    overview: `The **TechX Summit 2026: Creating What’s Next** successfully brought together students, educators, industry leaders, and technology professionals for a day of innovation, collaboration, and knowledge sharing at the Technological Institute of the Philippines (T.I.P.) – Quezon City.
+    overview: `As artificial intelligence reshapes industries and creates new demands for technology professionals, preparing for the future means understanding not only emerging technologies but also the infrastructure, security, leadership, and responsibilities behind them.
 
-The summit was officially launched by **T.I.P. President Angelo Quirino Lahoz** and **Infocomm Technology Association of the Philippines (ITAP) President Sunver Z. Bastes**, who also serves as President of Total Information Management Corporation (TIM), reinforcing their shared commitment to bridging academic excellence and industry innovation.
+These themes took center stage at **TechX Summit 2026: Creating What’s Next**, held on October 15, 2026, at the Technological Institute of the Philippines (T.I.P.) Quezon City campus. Organized by the **Infocomm Technology Association of the Philippines (ITAP)**, with T.I.P. as host and event partner, the summit brought together students, educators, and industry professionals to explore innovation, digital transformation, and future technology careers.
 
-### Industry Experts Shaping the Future of Technology
+The summit was officially launched by **T.I.P. President Angelo Quirino Lahoz** and **ITAP President Sunver Z. Bastes**, who also serves as President of Total Information Management Corporation (TIM), reinforcing their shared commitment to strengthening collaboration between academe and industry.
 
-The summit featured distinguished industry leaders who shared their expertise on emerging technologies, cybersecurity, leadership, and future career opportunities:
+In his remarks, Bastes emphasized the importance of sharing practical industry knowledge with the next generation of technology professionals.
 
-- **Sherwin Pelayo**, Executive Director of the Analytics & AI Association of the Philippines, delivered the opening keynote, *“The Future of Tech Careers in the AI Era.”*
-- **Bernice Gretchel P. Garcia-Rama**, CEO of Digital Edge Philippines, discussed *“AI-Ready Data Centers: Powering the Future of Intelligent Technology.”*
-- **Martin Mondejar**, President & CEO of Black Bear Security Inc., and **Erwin V. Cayco**, Managed Service Monitoring and Operations Head at TIM, led the live demonstration, *“Cybersecurity Live: Attack & Defense Simulation.”*
-- **Sunver Z. Bastes**, President of ITAP and TIM, shared leadership insights through *“Leading High-Performing Tech Teams: Communication, Collaboration & Leadership.”*
-- **Kristian Rey R. Trinidad**, Chief Risk and Information Security Officer at TIM, discussed *“Trust by Design: IT Governance, Risk & Responsible Technology.”*
-- **Karla Congson**, Founder & CEO of Agentiiv, explored *“Human in the Lead: The Evolving AI Landscape.”*
+*“All the knowledge that we are supposed to share today is not to reinvent things, but these are the things that we see that could add value as you move forward,”* Bastes said.
 
-The summit also featured an industry roundtable on **“The Next 5 Years of Tech Careers: AI, Cloud, Cybersecurity, Data & Digital Innovation,”** with **Michael Ngan** of Lenovo Philippines, **Walter So** of HPE Philippines, **Romulo P. Cambaliza** of CIOs Philippines, and **Kristian Rey R. Trinidad** of TIM.
+T.I.P. President Angelo Quirino Lahoz likewise highlighted the importance of combining technical expertise with sound judgment and responsibility.
 
-Through expert-led discussions, interactive demonstrations, and industry engagement, participants gained valuable perspectives on emerging technologies and the skills needed to thrive in an increasingly digital world.
+*“At T.I.P., we have always believed that technology education is not only about mastering tools. It is also about shaping people who use those tools wisely, build them responsibly, and lead others with confidence,”* Lahoz said.
 
-Guided by its four pillars — **Network, Collaborate, Innovate, and Transform** — TechX Summit 2026 highlighted the importance of academe-industry collaboration in developing future-ready Filipino technology professionals.
+## Industry Experts Shaping the Future of Technology
 
-**Through initiatives like TechX Summit, ITAP continues to champion innovation, strengthen industry-academic partnerships, and empower the next generation of technology leaders to create what’s next.**`,
+The summit featured distinguished industry leaders who shared valuable insights into emerging technologies, digital infrastructure, cybersecurity, responsible innovation, and leadership:
+
+- **Sherwin Pelayo** — Executive Director, Analytics & AI Association of the Philippines
+  *The Future of Tech Careers in the AI Era* (Opening Keynote)
+
+- **Bernice Gretchel P. Garcia-Rama** — Chief Executive Officer, Digital Edge Philippines
+  *AI-Ready Data Centers: Powering the Future of Intelligent Technology*
+
+- **Martin Mondejar** — President & CEO, Black Bear Security Inc., and **Erwin V. Cayco** — Managed Service Monitoring and Operations Head, TIM
+  *Cybersecurity Live: Attack & Defense Simulation*
+
+- **Sunver Z. Bastes** — President, ITAP and TIM
+  *Leading High-Performing Tech Teams: Communication, Collaboration & Leadership*
+
+- **Kristian Rey R. Trinidad** — Chief Risk and Information Security Officer, TIM
+  *Trust by Design: IT Governance, Risk & Responsible Technology*
+
+- **Karla Congson** — Founder & CEO, Agentiiv
+  *Human in the Lead: The Evolving AI Landscape*
+
+### Industry Roundtable: The Next 5 Years of Tech Careers
+
+The summit also featured an industry roundtable exploring the future of **AI, Cloud, Cybersecurity, Data, and Digital Innovation**, bringing together industry leaders:
+
+- **Michael Ngan** — President and General Manager, Lenovo Philippines
+- **Walter So** — President and Managing Director, HPE Philippines
+- **Romulo P. Cambaliza** — Independent ICT Consultant & Founding President, CIOs Philippines
+- **Kristian Rey R. Trinidad** — Chief Risk and Information Security Officer, TIM
+
+Through expert-led discussions, interactive demonstrations, and meaningful exchanges, participants gained practical perspectives on evolving industry demands, emerging career opportunities, and the skills needed to thrive in an increasingly technology-driven world.
+
+Guided by its four pillars — **Network, Collaborate, Innovate, and Transform** — TechX Summit 2026 demonstrated the importance of connecting academic learning with real-world industry expertise.
+
+More than a technology learning event, the summit reflected a shared commitment to developing future-ready Filipino talent equipped not only to adapt to technological change but also to lead and shape it responsibly.
+
+**Through initiatives like TechX Summit, ITAP continues to champion innovation, strengthen academe-industry partnerships, and empower the next generation of technology leaders to create what’s next.**`,
     eventPhotos: [
       "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/techx_students.png",
       "https://marketing.timcorp.net.ph/hubfs/ITAP/itap%20events/TechX/event%20photos/lahoz.png",

@@ -92,13 +92,14 @@ const renderFormattedOverview = (text: string) => {
         const trimmed = para.trim();
         if (!trimmed) return null;
 
-        // Heading 3 (###)
-        if (trimmed.startsWith('###')) {
+        // Heading 2 or 3 (## or ###)
+        if (trimmed.startsWith('##')) {
+          const isH2 = trimmed.startsWith('## ') && !trimmed.startsWith('###');
           return (
-            <div key={pIdx} className="pt-6 pb-2 border-b border-white/10">
-              <h3 className="text-xl sm:text-2xl font-display font-bold text-white flex items-center gap-2.5 tracking-tight">
-                <span className="w-2 h-2 rounded-full bg-brand-cyan shadow-[0_0_8px_rgba(0,210,255,0.8)]" />
-                <span>{parseFormattedInline(trimmed.replace(/^###\s*/, ''))}</span>
+            <div key={pIdx} className="pt-6 sm:pt-8 pb-3 border-b border-white/10">
+              <h3 className={`${isH2 ? 'text-2xl sm:text-3xl' : 'text-xl sm:text-2xl'} font-display font-bold text-white flex items-center gap-3 tracking-tight`}>
+                <span className="w-2.5 h-2.5 rounded-full bg-brand-cyan shadow-[0_0_10px_rgba(0,210,255,0.8)]" />
+                <span>{parseFormattedInline(trimmed.replace(/^#{2,3}\s*/, ''))}</span>
               </h3>
             </div>
           );
@@ -106,22 +107,63 @@ const renderFormattedOverview = (text: string) => {
 
         // Bullet list
         const lines = trimmed.split('\n');
-        const isBulletList = lines.some(l => l.trim().startsWith('*') || l.trim().startsWith('•') || l.trim().startsWith('-'));
+        const isBulletList = lines.some(l => {
+          const t = l.trim();
+          return t.startsWith('*') || t.startsWith('•') || t.startsWith('-');
+        });
 
         if (isBulletList) {
+          const items: string[] = [];
+          for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line) continue;
+            if (line.startsWith('*') || line.startsWith('•') || line.startsWith('-')) {
+              items.push(line.replace(/^[\*\•\-]\s*/, '').trim());
+            } else if (items.length > 0) {
+              items[items.length - 1] += '\n' + line;
+            } else {
+              items.push(line);
+            }
+          }
+
           return (
             <ul key={pIdx} className="space-y-3.5 my-4 pl-1">
-              {lines.map((line, lIdx) => {
-                const cleanLine = line.replace(/^[\*\•\-]\s*/, '').trim();
-                if (!cleanLine) return null;
+              {items.map((item, iIdx) => {
+                const subLines = item.split('\n');
                 return (
-                  <li key={lIdx} className="flex items-start gap-3 bg-white/[0.02] border border-white/5 rounded-xl p-3.5 sm:p-4 hover:border-brand-cyan/30 transition-colors">
+                  <li key={iIdx} className="flex items-start gap-3 bg-white/[0.02] border border-white/5 rounded-xl p-3.5 sm:p-4 hover:border-brand-cyan/30 transition-colors">
                     <span className="w-2 h-2 rounded-full bg-brand-cyan mt-2 shrink-0 shadow-[0_0_8px_rgba(0,210,255,0.7)]" />
-                    <span className="leading-relaxed text-slate-200">{parseFormattedInline(cleanLine)}</span>
+                    <div className="leading-relaxed text-slate-200 space-y-1">
+                      {subLines.map((sLine, sIdx) => (
+                        <div key={sIdx} className={sIdx > 0 ? "text-slate-400 text-sm sm:text-base font-normal pl-0.5" : ""}>
+                          {parseFormattedInline(sLine)}
+                        </div>
+                      ))}
+                    </div>
                   </li>
                 );
               })}
             </ul>
+          );
+        }
+
+        // Quote block (starts with *“ or “)
+        if (trimmed.startsWith('*“') || trimmed.startsWith('“')) {
+          return (
+            <div key={pIdx} className="my-5 p-4 sm:p-5 rounded-xl bg-gradient-to-r from-brand-cyan/10 via-brand-cyan/[0.03] to-transparent border-l-4 border-brand-cyan shadow-inner">
+              <p className="text-base sm:text-lg leading-relaxed text-slate-200">
+                {parseFormattedInline(trimmed)}
+              </p>
+            </div>
+          );
+        }
+
+        // Standalone bold callout banner
+        if (trimmed.startsWith('**') && trimmed.endsWith('**') && !trimmed.includes('\n')) {
+          return (
+            <div key={pIdx} className="my-6 p-5 sm:p-6 rounded-2xl bg-brand-cyan/10 border border-brand-cyan/30 text-white font-semibold text-base sm:text-lg leading-relaxed shadow-[0_0_20px_rgba(0,210,255,0.08)]">
+              {parseFormattedInline(trimmed.slice(2, -2))}
+            </div>
           );
         }
 
