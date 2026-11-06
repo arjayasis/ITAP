@@ -1264,6 +1264,31 @@ function App() {
           <Route path="/teckxliveq&a" element={<PageTransition><TechXLiveQA /></PageTransition>} />
           <Route path="/teckxliveq%26a" element={<PageTransition><TechXLiveQA /></PageTransition>} />
           <Route path="/teckxliveqa" element={<PageTransition><TechXLiveQA /></PageTransition>} />
+
+          {/* WordPress Root & Route Aliases (Ensures compatibility even if basename is stripped or bypassed) */}
+          <Route path="/wordpress" element={<PageTransition><Home /></PageTransition>} />
+          <Route path="/wordpress/membership" element={<PageTransition><Membership /></PageTransition>} />
+          <Route path="/wordpress/events" element={<PageTransition><Events /></PageTransition>} />
+          <Route path="/wordpress/event" element={<PageTransition><Events /></PageTransition>} />
+          <Route path="/wordpress/Events" element={<PageTransition><Events /></PageTransition>} />
+          <Route path="/wordpress/gmm2026" element={<PageTransition><GMM2026 /></PageTransition>} />
+          <Route path="/wordpress/deck-gmm2026" element={<PageTransition><div className="h-screen w-screen"><DeckGMM2026 /></div></PageTransition>} />
+          <Route path="/wordpress/join-membership" element={<PageTransition><JoinMembership /></PageTransition>} />
+          <Route path="/wordpress/GMM@TechXSummit2026" element={<PageTransition><GMMTechXSummit2026 /></PageTransition>} />
+          <Route path="/wordpress/gmm@techxsummit2026" element={<PageTransition><GMMTechXSummit2026 /></PageTransition>} />
+          <Route path="/wordpress/TechXSummit2026" element={<PageTransition><TechXSummit2026 /></PageTransition>} />
+          <Route path="/wordpress/techxsummit2026" element={<PageTransition><TechXSummit2026 /></PageTransition>} />
+          <Route path="/wordpress/techx-summit-2026" element={<PageTransition><TechXSummit2026 /></PageTransition>} />
+          <Route path="/wordpress/TechX-RSVP" element={<PageTransition><TechXRSVPMonitor /></PageTransition>} />
+          <Route path="/wordpress/techx-rsvp" element={<PageTransition><TechXRSVPMonitor /></PageTransition>} />
+          <Route path="/wordpress/techx-registration" element={<PageTransition><TechXRegistration /></PageTransition>} />
+          <Route path="/wordpress/techx-checkin" element={<PageTransition><TechXRegistration /></PageTransition>} />
+          <Route path="/wordpress/techx-qa" element={<PageTransition><TechXParticipantQA /></PageTransition>} />
+          <Route path="/wordpress/techx-qa-host" element={<PageTransition><TechXHostQA /></PageTransition>} />
+          <Route path="/wordpress/techx-live-qa" element={<PageTransition><TechXLiveQA /></PageTransition>} />
+
+          {/* Fallback Catch-all: gracefully renders Home for any unmatched sub-route */}
+          <Route path="*" element={<PageTransition><Home /></PageTransition>} />
         </Routes>
       </AnimatePresence>
 

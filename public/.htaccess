@@ -1,0 +1,59 @@
+# ----------------------------------------------------------------------
+# ITAP Single Page Application - Apache & WordPress Routing Rules
+# ----------------------------------------------------------------------
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Enable HTTP Authorization header for API / JWT / Bearer tokens
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+  # Serve existing physical files directly (CSS, JS, images, fonts, etc.)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Allow nested asset requests (e.g. /wordpress/assets/xxx -> /assets/xxx)
+  RewriteCond %{REQUEST_URI} ^/(.+)/assets/(.+)$ [NC]
+  RewriteCond %{DOCUMENT_ROOT}/assets/%2 -f
+  RewriteRule ^(.+)/assets/(.+)$ /assets/$2 [L]
+
+  # Prevent infinite redirect loops on index.html
+  RewriteRule ^index\.html$ - [L]
+
+  # Route all non-file requests to index.html for React Router
+  RewriteRule . index.html [L]
+</IfModule>
+
+# ----------------------------------------------------------------------
+# Proper MIME Types for Modern Web Bundles
+# ----------------------------------------------------------------------
+<IfModule mod_mime.c>
+  AddType application/javascript .js .mjs
+  AddType text/css .css
+  AddType image/svg+xml .svg .svgz
+  AddType image/webp .webp
+  AddType font/woff2 .woff2
+  AddType font/woff .woff
+  AddType application/json .json
+</IfModule>
+
+# ----------------------------------------------------------------------
+# Browser Caching & Cache Invalidation
+# ----------------------------------------------------------------------
+<IfModule mod_headers.c>
+  # Never cache index.html to ensure clients immediately receive SPA updates
+  <FilesMatch "index\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+  </FilesMatch>
+
+  # Cache hashed production bundles (JS, CSS, fonts, images) for 1 year
+  <FilesMatch "\.(js|mjs|css|webp|png|jpg|jpeg|gif|ico|svg|woff|woff2)$">
+    Header set Cache-Control "max-age=31536000, public, immutable"
+  </FilesMatch>
+
+  # Allow CORS and iFrame embedding if hosted inside a WordPress page
+  Header set X-Frame-Options "SAMEORIGIN"
+</IfModule>

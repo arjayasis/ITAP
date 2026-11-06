@@ -54,17 +54,68 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 }
 
-// Restore path if redirected from static 404 handler
-const redirectPath = sessionStorage.getItem('spa_redirect');
-if (redirectPath) {
-  sessionStorage.removeItem('spa_redirect');
-  window.history.replaceState(null, '', redirectPath);
+// Restore path if redirected from static 404 handler or WordPress rewrite
+try {
+  const redirectPath = sessionStorage.getItem('spa_redirect');
+  if (redirectPath) {
+    sessionStorage.removeItem('spa_redirect');
+    window.history.replaceState(null, '', redirectPath);
+  } else {
+    // Handle WordPress query-based redirects (e.g., ?route=/events, ?path=/events, ?p=/events)
+    const params = new URLSearchParams(window.location.search);
+    const queryRoute = 
+      params.get('route') || 
+      params.get('path') || 
+      (params.get('p') && params.get('p')!.startsWith('/') ? params.get('p') : null);
+      
+    if (queryRoute) {
+      params.delete('route');
+      params.delete('path');
+      if (params.get('p') === queryRoute) params.delete('p');
+      const newSearch = params.toString() ? `?${params.toString()}` : '';
+      const basePath = window.location.pathname.replace(/\/$/, '');
+      window.history.replaceState(null, '', `${basePath}${queryRoute}${newSearch}${window.location.hash}`);
+    }
+  }
+} catch {
+  // Ignore URL/storage access restrictions
 }
+
+// Automatically detect base path for WordPress installations (e.g., /wordpress or /wp subfolder)
+const getAppBasename = (): string => {
+  if (typeof window === 'undefined') return '';
+  
+  // Custom global or meta tag defined by WordPress theme or host
+  if (typeof (window as any).__WP_BASENAME__ === 'string') {
+    return (window as any).__WP_BASENAME__;
+  }
+  const metaBase = document.querySelector('meta[name="wp-basename"]')?.getAttribute('content');
+  if (metaBase) return metaBase.replace(/\/$/, '');
+
+  // Base tag check
+  const baseHref = document.querySelector('base')?.getAttribute('href');
+  if (baseHref && baseHref !== '/' && baseHref.startsWith('/')) {
+    return baseHref.replace(/\/$/, '');
+  }
+
+  // Dynamic detection for /wordpress or /wp subdirectories
+  const pathname = window.location.pathname;
+  if (pathname === '/wordpress' || pathname.startsWith('/wordpress/')) {
+    return '/wordpress';
+  }
+  if (pathname === '/wp' || pathname.startsWith('/wp/')) {
+    return '/wp';
+  }
+
+  return '';
+};
+
+const appBasename = getAppBasename();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter basename={appBasename}>
         <App />
       </BrowserRouter>
     </ErrorBoundary>
